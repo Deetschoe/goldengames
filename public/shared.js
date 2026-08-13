@@ -121,6 +121,36 @@ const Live = {
   }
 };
 
+/* ------------------------------------------------------------------ icons */
+
+/* Hand-drawn line icons instead of emoji: emoji render differently on every
+   device (and some phones show them in colour, some as flat glyphs), while
+   these inherit the button's colour and size exactly. */
+const ICONS = {
+  tv: '<rect x="2" y="7" width="20" height="13" rx="2"/><path d="M8 2.5 12 7l4-4.5"/>',
+  phone: '<rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M10.5 18.6h3"/>',
+  bulb: '<path d="M12 2.6a5.9 5.9 0 0 0-3.5 10.7c.6.5 1 1.2 1.1 1.9h4.8c.1-.7.5-1.4 1.1-1.9A5.9 5.9 0 0 0 12 2.6Z"/>' +
+        '<path d="M9.6 18.4h4.8"/><path d="M10.6 21.4h2.8"/>',
+  undo: '<path d="M4.5 10h9.5a5 5 0 0 1 0 10h-3.5"/><path d="m8.5 5.5-4 4.5 4 4.5"/>',
+  more: '<circle cx="5" cy="12" r="1.9" fill="currentColor" stroke="none"/>' +
+        '<circle cx="12" cy="12" r="1.9" fill="currentColor" stroke="none"/>' +
+        '<circle cx="19" cy="12" r="1.9" fill="currentColor" stroke="none"/>',
+  soundOn: '<path d="M3.5 9.2v5.6H7L12.5 19V5L7 9.2H3.5Z"/><path d="M16 9a4.2 4.2 0 0 1 0 6"/>' +
+           '<path d="M18.8 6.4a8 8 0 0 1 0 11.2"/>',
+  soundOff: '<path d="M3.5 9.2v5.6H7L12.5 19V5L7 9.2H3.5Z"/><path d="m16.5 9.5 5 5"/><path d="m21.5 9.5-5 5"/>',
+  play: '<path d="M8 5.2v13.6L18.5 12 8 5.2Z" fill="currentColor"/>',
+  swap: '<path d="M20 12a8 8 0 1 1-2.3-5.6"/><path d="M20 3.6V8.5h-4.9"/>',
+  check: '<path d="m4.5 12.4 4.8 4.8L19.5 6.6" stroke-width="3"/>'
+};
+
+/* icon('bulb', 26) -> an svg string ready to drop into innerHTML */
+function icon(name, size) {
+  const px = size ? 'style="width:' + size + 'px;height:' + size + 'px"' : '';
+  return '<svg class="ico" ' + px + ' viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+    'stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+    (ICONS[name] || '') + '</svg>';
+}
+
 /* ----------------------------------------------------------------- helpers */
 
 /* "SNICKERS" with 4 letters shown -> "SNIC _ _ _ _"

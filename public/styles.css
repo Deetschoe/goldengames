@@ -18,31 +18,46 @@
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
+/* No fixed height here. A page taller than the phone has to be able to
+   scroll; the pages that must not scroll (the TV board) say so themselves. */
 html, body {
   margin: 0;
   padding: 0;
-  height: 100%;
+  min-height: 100%;
   background: var(--navy-deep);
   color: var(--ink);
   font-family: Georgia, 'Times New Roman', serif;
-  overscroll-behavior: none;
+  overscroll-behavior-y: contain;
 }
 
-/* gold polka-dot field behind everything */
+/* Gold polka-dot field behind everything. It breathes: a slow scale + drift
+   with a brightness pulse, so the backdrop feels alive without pulling the
+   eye off the board. No background-color here - brightness() would tint the
+   navy too, and we only want the dots to glow. */
 .dots {
   position: fixed;
-  inset: 0;
-  background-color: var(--navy-deep);
+  inset: -70px;               /* slack so the drift never exposes an edge */
   background-image: radial-gradient(circle, var(--gold-dim) 0 26%, transparent 27%);
   background-size: 74px 74px;
-  opacity: 0.9;
+  opacity: 0.6;
   z-index: 0;
+  pointer-events: none;
+  animation: dot-breathe 24s ease-in-out infinite;
+  will-change: transform, filter;
+}
+@keyframes dot-breathe {
+  0%, 100% { transform: scale(1) translate3d(0, 0, 0); filter: brightness(0.8); }
+  50%      { transform: scale(1.04) translate3d(8px, -12px, 0); filter: brightness(1.2); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dots { animation: none; }
 }
 
 .stage {
   position: relative;
   z-index: 1;
-  height: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   flex-direction: column;
 }
@@ -110,9 +125,13 @@ button {
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  /* when the content is taller than the screen, centring would push the top
+     out of reach - "safe" pins it to the start instead */
+  justify-content: safe center;
   gap: 26px;
   padding: 28px;
   text-align: center;
+  overflow-y: auto;
 }
 
 .entry-logo {
@@ -138,7 +157,19 @@ button {
 .tagline { font-size: 22px; color: #c7d0f2; max-width: 620px; line-height: 1.5; }
 .error { color: #ff9a9a; font-size: 20px; min-height: 24px; }
 
+/* ------------------------------------------------------------------ icons */
+
+/* line icons drawn in currentColor, so they take the colour of the button
+   they sit in. Sized in em unless the caller sets a pixel size inline. */
+.ico {
+  width: 1em;
+  height: 1em;
+  flex: none;
+  display: inline-block;
+  vertical-align: -0.14em;
+}
+
 /* full-size dots are made for a TV; on a phone they swamp the controls */
 @media (max-width: 700px) {
-  .dots { background-size: 38px 38px; opacity: 0.3; }
+  .dots { background-size: 38px 38px; opacity: 0.22; }
 }

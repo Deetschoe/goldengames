@@ -1,0 +1,13 @@
+{
+  "name": "goldengames",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Golden Games - a Family Feud style game show for the activity room",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

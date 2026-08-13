@@ -15,9 +15,18 @@
     display: flex; flex-direction: column; align-items: center; gap: 10px;
   }
   .role-card:active { transform: translateY(5px); box-shadow: 0 3px 0 #16276b; }
-  .role-icon { font-size: 54px; line-height: 1; }
+  .role-icon { display: flex; align-items: center; justify-content: center; height: 60px; }
+  .role-icon .ico { filter: drop-shadow(0 3px 0 rgba(0,0,0,0.35)); }
   .role-name { font-size: 30px; }
   .role-sub { font-size: 17px; font-weight: 400; opacity: 0.9; line-height: 1.35; }
+
+  @media (max-width: 700px) {
+    .roles { gap: 16px; }
+    .role-card { width: min(300px, 88vw); padding: 20px 18px; gap: 6px; }
+    .role-icon { height: 46px; }
+    .role-name { font-size: 26px; }
+    .role-sub { font-size: 15px; }
+  }
 </style>
 </head>
 <body>
@@ -40,12 +49,12 @@
     <p class="tagline">Which screen is this?</p>
     <div class="roles">
       <button class="role-card" onclick="location.href='/play'">
-        <span class="role-icon">📺</span>
+        <span class="role-icon" id="ico-play"></span>
         <span class="role-name">Playscreen</span>
         <span class="role-sub">The big board everyone watches</span>
       </button>
       <button class="role-card" onclick="location.href='/announcer'">
-        <span class="role-icon">📱</span>
+        <span class="role-icon" id="ico-ann"></span>
         <span class="role-name">Announcer</span>
         <span class="role-sub">Your phone. Runs the game.</span>
       </button>
@@ -56,6 +65,9 @@
 
 <script src="shared.js"></script>
 <script>
+  document.getElementById('ico-play').innerHTML = icon('tv', 52);
+  document.getElementById('ico-ann').innerHTML = icon('phone', 48);
+
   const door = document.getElementById('door');
   const roles = document.getElementById('roles');
   const pw = document.getElementById('pw');

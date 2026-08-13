@@ -2,19 +2,25 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Golden Games - Announcer</title>
 <link rel="icon" href="logo.png">
 <link rel="stylesheet" href="styles.css">
 <style>
+/* The phone page is a scrolling document, so nothing here may pin the height
+   to the viewport - that is what stranded the "Start the Game" button below
+   the fold with no way to reach it. */
+html, body { height: auto; min-height: 100%; }
 body { font-size: 18px; }
-.stage { min-height: 100%; }
+.stage { min-height: 100dvh; }
 
 .pad { padding: 14px 14px 190px; }
+/* setup has no fixed footer over it, so it only needs thumb room */
+#v-setup { padding-bottom: calc(48px + env(safe-area-inset-bottom)); }
 
 .hdr {
   position: sticky; top: 0; z-index: 20;
-  background: linear-gradient(180deg, #0a1240 82%, rgba(10,18,64,0));
+  background: linear-gradient(180deg, #0a1240 88%, rgba(10,18,64,0.97));
   padding: 12px 14px 16px;
   border-bottom: 2px solid rgba(240,168,36,0.35);
 }
@@ -25,10 +31,23 @@ body { font-size: 18px; }
   border-radius: 999px; padding: 5px 11px;
 }
 .icon-btn {
-  width: 46px; height: 46px; border-radius: 12px; font-size: 22px;
+  width: 46px; height: 46px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
   background: rgba(255,255,255,0.08); border: 2px solid rgba(255,255,255,0.28);
 }
-.qtext { font-size: 22px; font-weight: 700; line-height: 1.35; margin-top: 10px; }
+/* The question is what the announcer reads out loud, so it gets to be the
+   biggest text on the phone. fitQuestion() steps this down for a long
+   question so the header never swallows the answer buttons, and it drops to
+   a single small line once you scroll down to them. */
+/* deliberately no font-size transition: fitQuestion() measures the laid-out
+   height in a loop, and a transition would have it measuring a size the text
+   is still animating towards */
+.qtext {
+  font-size: clamp(32px, 12vw, 48px);
+  font-weight: 700; line-height: 1.2; margin-top: 12px;
+  color: #fff;
+}
+.hdr.compact .qtext { font-size: 21px; line-height: 1.3; }
 
 .section-label {
   font-size: 13px; letter-spacing: 0.18em; text-transform: uppercase;
@@ -65,9 +84,9 @@ body { font-size: 18px; }
 }
 .ans-main img.tick { width: 26px; height: 26px; }
 .hint-btn {
-  width: 68px; border-radius: 14px; font-size: 24px;
+  width: 68px; border-radius: 14px; color: var(--gold-bright);
   background: rgba(255,255,255,0.08); border: 3px solid rgba(255,255,255,0.28);
-  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
 }
 .hint-btn small { font-size: 11px; opacity: 0.8; font-weight: 400; }
 .hint-btn:disabled { opacity: 0.25; }
@@ -111,9 +130,18 @@ body { font-size: 18px; }
 .sheet-inner {
   background: #0d1745; border: 3px solid var(--gold-dim); border-radius: 20px;
   padding: 16px; display: flex; flex-direction: column; gap: 10px;
-  max-height: 86vh; overflow-y: auto;
+  max-height: 92dvh; overflow-y: auto;
 }
-.sheet .btn { width: 100%; font-size: 19px; padding: 16px; }
+/* the sheet is taller than a phone, so Close rides the bottom of it rather
+   than sitting at the end of a scroll the judge has to go hunting for */
+#closesheet {
+  position: sticky; bottom: -16px; z-index: 2;
+  margin-top: 8px; box-shadow: 0 5px 0 #8a5a08, 0 -14px 18px rgba(13,23,69,0.95);
+}
+.sheet .btn {
+  width: 100%; font-size: 19px; padding: 16px;
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+}
 .score-edit { display: flex; align-items: center; gap: 8px; }
 .score-edit .nm { flex: 1; font-size: 17px; }
 .score-edit button { width: 54px; height: 50px; border-radius: 12px; font-size: 22px;
@@ -147,8 +175,8 @@ body { font-size: 18px; }
         <div class="round-pill" id="pill">Round 1 of 6</div>
         <div style="display:flex;gap:8px;align-items:center">
           <div id="strikedots" style="display:flex;gap:4px"></div>
-          <button class="icon-btn" id="undo" title="Undo">↩</button>
-          <button class="icon-btn" id="menu" title="More">⋯</button>
+          <button class="icon-btn" id="undo" title="Undo" aria-label="Undo"></button>
+          <button class="icon-btn" id="menu" title="More" aria-label="More"></button>
         </div>
       </div>
       <div class="qtext" id="qtext"></div>
@@ -193,7 +221,7 @@ body { font-size: 18px; }
     <div class="big-msg" id="rw-msg"></div>
     <p class="status" id="rw-tot"></p>
     <button class="btn btn-gold" id="nextround" style="width:100%;font-size:26px;padding:26px;margin-top:24px">Next Round →</button>
-    <button class="btn btn-ghost" id="rw-undo" style="width:100%;margin-top:12px">↩ Undo</button>
+    <button class="btn btn-ghost" id="rw-undo" style="width:100%;margin-top:12px;display:flex;align-items:center;justify-content:center;gap:10px">Undo</button>
   </section>
 
   <!-- GAME OVER -->
@@ -224,14 +252,14 @@ body { font-size: 18px; }
       <button data-t="1" data-d="25">+25</button>
     </div>
     <div class="section-label">Question</div>
-    <button class="btn btn-ghost" id="skip">⤼ Skip this question</button>
+    <button class="btn btn-ghost" id="skip">Skip this question</button>
     <div class="section-label">Sound</div>
-    <button class="btn btn-ghost" id="mute">🔊 Sound is ON</button>
-    <button class="btn btn-ghost" id="replay-intro">▶ Replay intro music</button>
-    <button class="btn btn-ghost" id="replay-win">▶ Replay round-win music</button>
+    <button class="btn btn-ghost" id="mute">Sound is ON</button>
+    <button class="btn btn-ghost" id="replay-intro">Replay intro music</button>
+    <button class="btn btn-ghost" id="replay-win">Replay round-win music</button>
     <div class="section-label">Danger</div>
     <button class="btn btn-red" id="reset">Reset the whole game (hold 2s)</button>
-    <button class="btn btn-gold" id="closesheet" style="margin-top:8px">Close</button>
+    <button class="btn btn-gold" id="closesheet">Close</button>
   </div>
 </div>
 
@@ -242,7 +270,18 @@ if (Gate.require()) {
 
 const $ = id => document.getElementById(id);
 const views = { setup: $('v-setup'), game: $('v-game'), round: $('v-round'), over: $('v-over') };
-function show(name) { for (const k in views) views[k].classList.toggle('hidden', k !== name); }
+function show(name) {
+  for (const k in views) views[k].classList.toggle('hidden', k !== name);
+  window.scrollTo(0, 0);
+}
+
+/* icons that never change */
+$('undo').innerHTML = icon('undo', 24);
+$('menu').innerHTML = icon('more', 24);
+$('rw-undo').innerHTML = icon('undo', 22) + '<span>Undo</span>';
+$('skip').innerHTML = icon('swap', 22) + '<span>Skip this question</span>';
+$('replay-intro').innerHTML = icon('play', 20) + '<span>Replay intro music</span>';
+$('replay-win').innerHTML = icon('play', 20) + '<span>Replay round-win music</span>';
 
 /* ------------------------------------------------------------ setup form */
 let chosen = new Set(CATEGORIES);
@@ -256,9 +295,10 @@ function drawCats() {
       'border-radius:14px;font-size:18px;border:3px solid ' +
       (chosen.has(c) ? 'var(--gold-bright)' : 'rgba(255,255,255,0.28)') + ';background:' +
       (chosen.has(c) ? 'rgba(240,168,36,0.16)' : 'rgba(255,255,255,0.05)');
-    el.innerHTML = '<span style="width:28px;height:28px;flex:none;border-radius:7px;border:3px solid var(--gold);' +
-      'display:flex;align-items:center;justify-content:center;color:#2a1a00;font-weight:700;background:' +
-      (chosen.has(c) ? 'var(--gold-bright)' : 'transparent') + '">' + (chosen.has(c) ? '✓' : '') + '</span><span>' + c + '</span>';
+    el.innerHTML = '<span style="width:30px;height:30px;flex:none;border-radius:7px;border:3px solid var(--gold);' +
+      'display:flex;align-items:center;justify-content:center;color:#2a1a00;background:' +
+      (chosen.has(c) ? 'var(--gold-bright)' : 'transparent') + '">' +
+      (chosen.has(c) ? icon('check', 18) : '') + '</span><span>' + c + '</span>';
     el.onclick = () => { chosen.has(c) ? chosen.delete(c) : chosen.add(c); drawCats(); };
     box.appendChild(el);
   });
@@ -284,6 +324,7 @@ function paintGame(s) {
   cur = s;
   $('pill').textContent = 'Round ' + (s.roundIndex + 1) + '/' + s.totalRounds;
   $('qtext').textContent = q.text;
+  fitQuestion();
 
   const dots = $('strikedots');
   dots.innerHTML = '';
@@ -314,7 +355,7 @@ function paintGame(s) {
 
     const hint = document.createElement('button');
     hint.className = 'hint-btn';
-    hint.innerHTML = '💡<small>' + (revealed ? '—' : a.shown + '/' + a.length) + '</small>';
+    hint.innerHTML = icon('bulb', 26) + '<small>' + (revealed ? '—' : a.shown + '/' + a.length) + '</small>';
     hint.disabled = revealed || a.shown >= a.length;
     hint.onclick = () => Live.send('hint', { index: i });
 
@@ -365,7 +406,9 @@ function paintGame(s) {
 }
 
 Live.onState = s => {
-  $('mute').textContent = s.muted ? '🔇 Sound is OFF' : '🔊 Sound is ON';
+  $('mute').innerHTML = s.muted
+    ? icon('soundOff', 22) + '<span>Sound is OFF</span>'
+    : icon('soundOn', 22) + '<span>Sound is ON</span>';
   $('seA').textContent = s.teams[0].name;
   $('seB').textContent = s.teams[1].name;
 
@@ -433,6 +476,37 @@ resetBtn.addEventListener('pointerdown', startHold);
 resetBtn.addEventListener('pointerup', cancelHold);
 resetBtn.addEventListener('pointerleave', cancelHold);
 resetBtn.addEventListener('pointercancel', cancelHold);
+
+/* The question is set big enough to read at arm's length, which makes the
+   sticky header tall. Two things keep it from taking over the screen: a long
+   question steps down in size until it fits a third of the phone, and the
+   whole header collapses to one small line once you scroll to the answers.
+   Hysteresis (80 down / 30 up) stops it flapping when the collapse itself
+   moves the scroll position. */
+const hdr = document.querySelector('.hdr');
+let compact = false;
+
+function fitQuestion() {
+  const el = $('qtext');
+  el.style.fontSize = '';        // start from the CSS size every time
+  // compact: the .compact rule owns the size. offsetParent null: the game
+  // view is still hidden, so there is nothing to measure yet.
+  if (compact || !el.offsetParent) return;
+  const budget = Math.min(250, window.innerHeight * 0.36);
+  let size = parseFloat(getComputedStyle(el).fontSize);
+  while (el.scrollHeight > budget && size > 28) {
+    size -= 2;
+    el.style.fontSize = size + 'px';
+  }
+}
+
+window.addEventListener('scroll', () => {
+  const y = window.scrollY;
+  if (!compact && y > 80) { compact = true; hdr.classList.add('compact'); fitQuestion(); }
+  else if (compact && y < 30) { compact = false; hdr.classList.remove('compact'); fitQuestion(); }
+}, { passive: true });
+
+window.addEventListener('resize', fitQuestion);
 
 Live.connect();
 
