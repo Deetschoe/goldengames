@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Golden Games</title>
+<link rel="icon" href="logo.png">
+<link rel="stylesheet" href="styles.css">
+<style>
+  .roles { display: flex; gap: 26px; flex-wrap: wrap; justify-content: center; }
+  .role-card {
+    width: 260px; padding: 30px 22px; border-radius: 22px;
+    background: linear-gradient(180deg, var(--tile-top), var(--tile-bot));
+    border: 5px solid #cfd8f7; box-shadow: 0 8px 0 #16276b;
+    display: flex; flex-direction: column; align-items: center; gap: 10px;
+  }
+  .role-card:active { transform: translateY(5px); box-shadow: 0 3px 0 #16276b; }
+  .role-icon { font-size: 54px; line-height: 1; }
+  .role-name { font-size: 30px; }
+  .role-sub { font-size: 17px; font-weight: 400; opacity: 0.9; line-height: 1.35; }
+</style>
+</head>
+<body>
+<div class="dots"></div>
+<div class="stage">
+
+  <!-- password -->
+  <section id="door" class="entry">
+    <img class="entry-logo" src="logo.png" alt="Golden Games">
+    <p class="tagline">Please enter the password to begin.</p>
+    <input id="pw" class="field" type="password" placeholder="Password" autocomplete="off"
+           autocapitalize="off" spellcheck="false">
+    <p id="pw-error" class="error"></p>
+    <button id="pw-go" class="btn btn-gold" style="min-width:220px">Enter</button>
+  </section>
+
+  <!-- role picker -->
+  <section id="roles" class="entry hidden">
+    <img class="entry-logo" src="logo.png" alt="Golden Games">
+    <p class="tagline">Which screen is this?</p>
+    <div class="roles">
+      <button class="role-card" onclick="location.href='/play'">
+        <span class="role-icon">📺</span>
+        <span class="role-name">Playscreen</span>
+        <span class="role-sub">The big board everyone watches</span>
+      </button>
+      <button class="role-card" onclick="location.href='/announcer'">
+        <span class="role-icon">📱</span>
+        <span class="role-name">Announcer</span>
+        <span class="role-sub">Your phone. Runs the game.</span>
+      </button>
+    </div>
+  </section>
+
+</div>
+
+<script src="shared.js"></script>
+<script>
+  const door = document.getElementById('door');
+  const roles = document.getElementById('roles');
+  const pw = document.getElementById('pw');
+  const err = document.getElementById('pw-error');
+
+  function showRoles() {
+    door.classList.add('hidden');
+    roles.classList.remove('hidden');
+  }
+
+  function tryUnlock() {
+    // this tap is our one chance to satisfy the browser autoplay policy
+    Audio_.unlock();
+    if (Gate.unlock(pw.value)) {
+      showRoles();
+    } else {
+      err.textContent = 'That is not the password. Try again.';
+      pw.value = '';
+      pw.focus();
+    }
+  }
+
+  document.getElementById('pw-go').addEventListener('click', tryUnlock);
+  pw.addEventListener('keydown', e => { if (e.key === 'Enter') tryUnlock(); });
+
+  if (Gate.ok()) showRoles(); else pw.focus();
+</script>
+</body>
+</html>

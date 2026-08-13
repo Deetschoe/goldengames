@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Golden Games - Board</title>
+<link rel="icon" href="logo.png">
+<link rel="stylesheet" href="styles.css">
+<style>
+body { overflow: hidden; }
+
+/* ------------------------------------------------------------ setup form */
+.setup-grid { display: flex; flex-direction: column; gap: 18px; align-items: center; }
+.cat-list { display: flex; flex-direction: column; gap: 12px; width: min(560px, 92vw); }
+.cat {
+  display: flex; align-items: center; gap: 16px; padding: 16px 20px;
+  border: 3px solid rgba(255,255,255,0.3); border-radius: 14px;
+  background: rgba(255,255,255,0.05); font-size: 24px; cursor: pointer;
+}
+.cat.on { border-color: var(--gold-bright); background: rgba(240,168,36,0.16); }
+.cat .box {
+  width: 34px; height: 34px; border-radius: 8px; border: 3px solid var(--gold);
+  display: flex; align-items: center; justify-content: center; flex: none;
+}
+.cat.on .box { background: var(--gold-bright); }
+.cat.on .box::after { content: '✓'; color: #2a1a00; font-size: 24px; font-weight: 700; }
+.waiting { font-size: 26px; color: #c7d0f2; line-height: 1.5; }
+
+/* --------------------------------------------------------------- top bar */
+.topbar {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 20px; padding: 1.4vh 2.2vw 0;
+}
+/* equal-width flanks keep the question optically centred */
+.tb-side { width: 17vw; flex: none; display: flex; flex-direction: column; gap: 0.9vh; align-items: flex-start; }
+.tb-side.right { align-items: flex-end; }
+.tb-logo { height: 5.6vh; object-fit: contain; object-position: left center; }
+.round-pill {
+  font-size: 1.9vh; letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--gold-bright); border: 2px solid var(--gold-dim);
+  border-radius: 999px; padding: 0.7vh 1.4vw; white-space: nowrap;
+}
+.qtext {
+  flex: 1; text-align: center; font-size: 3.5vh; font-weight: 700;
+  line-height: 1.28; padding: 0 1vw; text-shadow: 0 2px 6px rgba(0,0,0,0.6);
+}
+
+/* strike tray */
+.tray { display: flex; gap: 0.6vw; min-height: 4.6vh; justify-content: flex-end; }
+.tray img { width: 4.6vh; height: 4.6vh; animation: tray-pop 0.35s ease-out both; }
+@keyframes tray-pop {
+  0% { transform: scale(0) rotate(-90deg); opacity: 0; }
+  70% { transform: scale(1.25) rotate(8deg); }
+  100% { transform: scale(1) rotate(0); opacity: 1; }
+}
+
+/* ----------------------------------------------------------------- board */
+.board-wrap { position: relative; flex: 1; display: flex; align-items: center; justify-content: center; padding: 1.4vh 2vw; min-height: 0; }
+.board {
+  border: 0.85vh solid var(--gold);
+  border-radius: 3.4vh;
+  background: rgba(4, 8, 26, 0.72);
+  box-shadow: 0 0 0 0.35vh #7a4f08, 0 0 46px rgba(240,168,36,0.35), inset 0 0 60px rgba(0,0,0,0.6);
+  padding: 2.2vh 2vw;
+  width: min(1500px, 94vw);
+  height: 100%;
+  display: grid;
+  gap: 1.5vh 1.8vw;
+}
+
+.tile { perspective: 900px; min-height: 0; }
+.tile-inner {
+  position: relative; width: 100%; height: 100%;
+  transform-style: preserve-3d;
+  transition: transform 0.6s cubic-bezier(0.5, 0, 0.3, 1);
+}
+.tile.revealed .tile-inner { transform: rotateX(180deg); }
+.face {
+  position: absolute; inset: 0;
+  backface-visibility: hidden; -webkit-backface-visibility: hidden;
+  display: flex; align-items: stretch;
+  border-radius: 0.8vh; overflow: hidden;
+  border: 0.35vh solid #d7ddf5;
+  background: linear-gradient(180deg, var(--tile-top) 0%, var(--tile-mid) 46%, var(--tile-bot) 100%);
+  box-shadow: inset 0 0.3vh 0 rgba(255,255,255,0.5), 0 0.5vh 0 rgba(0,0,0,0.45);
+}
+.face.back { transform: rotateX(180deg); }
+.slot {
+  flex: 1; display: flex; align-items: center; padding: 0 1.4vw;
+  font-size: 4vh; font-weight: 700; letter-spacing: 0.02em;
+  text-shadow: 0 0.25vh 0 rgba(0,0,0,0.45);
+  overflow: hidden; white-space: nowrap;
+}
+.slot.center { justify-content: center; }
+.pts {
+  width: 8.6vh; flex: none; display: flex; align-items: center; justify-content: center;
+  font-size: 4.4vh; font-weight: 700;
+  border-left: 0.35vh solid #d7ddf5;
+  background: linear-gradient(180deg, #8fa9f7, #2c49b8);
+  text-shadow: 0 0.25vh 0 rgba(0,0,0,0.45);
+}
+.rank {
+  font-size: 5vh; font-weight: 700; opacity: 0.95;
+}
+.mask { font-size: 3.4vh; letter-spacing: 0.08em; }
+/* empty seats when a question has fewer answers than the grid */
+.tile.blank .face { background: rgba(255,255,255,0.045); border-color: rgba(255,255,255,0.12); box-shadow: none; }
+
+/* check flash on reveal */
+.tile .check {
+  position: absolute; top: 50%; left: 50%; width: 9vh; height: 9vh;
+  transform: translate(-50%, -50%) scale(0.4); opacity: 0;
+  pointer-events: none; z-index: 5;
+}
+.tile.flash .check { animation: check-pop 1s ease-out both; }
+@keyframes check-pop {
+  0% { transform: translate(-50%,-50%) scale(0.3); opacity: 0; }
+  35% { transform: translate(-50%,-50%) scale(1.15); opacity: 1; }
+  70% { transform: translate(-50%,-50%) scale(1); opacity: 1; }
+  100% { transform: translate(-50%,-50%) scale(1.4); opacity: 0; }
+}
+
+/* ------------------------------------------------------------- score bar */
+.scorebar {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 2vw; padding: 0 2.4vw 1.8vh;
+}
+.team {
+  display: flex; align-items: baseline; gap: 1.1vw;
+  padding: 0.9vh 1.6vw; border-radius: 1.4vh;
+  border: 0.35vh solid rgba(255,255,255,0.22);
+  background: rgba(255,255,255,0.05);
+  transition: all 0.3s ease;
+  min-width: 22vw;
+}
+.team.control {
+  border-color: var(--gold-bright);
+  background: rgba(240,168,36,0.2);
+  box-shadow: 0 0 30px rgba(240,168,36,0.5);
+}
+.team.right { flex-direction: row-reverse; }
+.team-name { font-size: 3vh; font-weight: 700; text-transform: uppercase; }
+.team-score { font-size: 4.6vh; font-weight: 700; color: var(--gold-bright); }
+.pot {
+  text-align: center; flex: none;
+}
+.pot-label { font-size: 1.7vh; letter-spacing: 0.22em; color: #b9c4ec; text-transform: uppercase; }
+.pot-value { font-size: 6vh; font-weight: 700; color: var(--gold-bright); text-shadow: 0 3px 0 #6b4508; }
+
+/* ------------------------------------------------------------- overlays */
+.strike-overlay {
+  position: fixed; inset: 0; z-index: 60;
+  display: flex; align-items: center; justify-content: center;
+  pointer-events: none; perspective: 1200px;
+}
+.strike-overlay img {
+  width: 42vh; height: 42vh;
+  filter: drop-shadow(0 0 40px rgba(255,0,0,0.55)) drop-shadow(0 14px 30px rgba(0,0,0,0.7));
+}
+@keyframes strike-slam {
+  0%   { transform: translate(0,0) scale(0.15) rotateY(-540deg); opacity: 0; }
+  16%  { transform: translate(0,0) scale(1.35) rotateY(0deg); opacity: 1; }
+  24%  { transform: translate(0,0) scale(1) rotateY(0deg); }
+  30%  { transform: translate(0,0) scale(1.08) rotateY(0deg); }
+  72%  { transform: translate(0,0) scale(1.02) rotateY(0deg); opacity: 1; }
+  100% { transform: translate(var(--fx), var(--fy)) scale(0.11) rotateY(360deg); opacity: 0.15; }
+}
+.strike-overlay.go img { animation: strike-slam 1.6s cubic-bezier(0.2,0.8,0.3,1) both; }
+
+/* rides the bottom edge of the gold frame so it never covers an answer */
+.steal-banner {
+  position: absolute; left: 50%; bottom: -0.4vh; transform: translateX(-50%);
+  background: linear-gradient(180deg, var(--gold-bright), #c07f0c);
+  color: #2a1a00; font-size: 3.2vh; font-weight: 700; white-space: nowrap;
+  padding: 1.2vh 3vw; border-radius: 1.6vh; border: 0.4vh solid #fff2cf;
+  box-shadow: 0 0.8vh 0 #7c5206, 0 0 60px rgba(240,168,36,0.6);
+  z-index: 20; text-align: center; animation: banner-in 0.5s ease-out both;
+}
+@keyframes banner-in {
+  from { transform: translateX(-50%) translateY(1.5vh); opacity: 0; }
+  to { transform: translateX(-50%) translateY(0); opacity: 1; }
+}
+
+/* round win + game over */
+.celebrate {
+  position: fixed; inset: 0; z-index: 50;
+  background: radial-gradient(circle at 50% 40%, #1b2c72 0%, var(--navy-deep) 70%);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 2.6vh; text-align: center; padding: 4vh;
+}
+.celebrate img.logo { width: min(320px, 26vw); opacity: 0.95; }
+.celebrate .who { font-size: 8vh; font-weight: 700; color: var(--gold-bright); text-shadow: 0 5px 0 #6b4508, 0 0 50px rgba(240,168,36,0.6); animation: pop-in 0.6s ease-out both; }
+.celebrate .sub { font-size: 4vh; color: #dfe6ff; }
+.celebrate .amount { font-size: 12vh; font-weight: 700; color: #fff; text-shadow: 0 6px 0 #6b4508; animation: pop-in 0.7s 0.15s ease-out both; }
+.celebrate .finals { font-size: 5vh; color: #dfe6ff; }
+@keyframes pop-in {
+  0% { transform: scale(0.5); opacity: 0; }
+  65% { transform: scale(1.12); }
+  100% { transform: scale(1); opacity: 1; }
+}
+.confetti { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 55; }
+.confetti i {
+  position: absolute; top: -6vh; width: 1.1vh; height: 2.4vh; border-radius: 2px;
+  background: var(--gold-bright); animation: fall linear forwards;
+}
+@keyframes fall {
+  to { transform: translateY(112vh) rotate(720deg); opacity: 0.2; }
+}
+</style>
+</head>
+<body>
+<div class="dots"></div>
+<div class="stage">
+
+  <!-- SETUP ------------------------------------------------------------ -->
+  <section id="v-setup" class="entry hidden">
+    <img class="entry-logo" src="logo.png" alt="Golden Games">
+    <div class="setup-grid">
+      <input id="teamA" class="field" placeholder="Team 1 name" maxlength="20">
+      <input id="teamB" class="field" placeholder="Team 2 name" maxlength="20">
+      <div class="cat-list" id="cats"></div>
+      <button id="start" class="btn btn-gold" style="min-width:320px;font-size:28px">Start the Game</button>
+      <p class="waiting">Or set this up from the announcer's phone.</p>
+    </div>
+  </section>
+
+  <!-- QUESTION ---------------------------------------------------------- -->
+  <section id="v-game" class="stage hidden" style="position:absolute;inset:0">
+    <div class="topbar">
+      <div class="tb-side">
+        <img class="tb-logo" src="logo.png" alt="Golden Games">
+        <div class="round-pill" id="pill">Round 1 of 6</div>
+      </div>
+      <div class="qtext" id="qtext"></div>
+      <div class="tb-side right">
+        <div class="tray" id="tray"></div>
+      </div>
+    </div>
+
+    <div class="board-wrap">
+      <div class="board" id="board"></div>
+      <div id="steal" class="steal-banner hidden"></div>
+    </div>
+
+    <div class="scorebar">
+      <div class="team" id="teamL">
+        <span class="team-name" id="nameL">Team 1</span>
+        <span class="team-score" id="scoreL">0</span>
+      </div>
+      <div class="pot">
+        <div class="pot-label">Pot</div>
+        <div class="pot-value" id="potv">0</div>
+      </div>
+      <div class="team right" id="teamR">
+        <span class="team-name" id="nameR">Team 2</span>
+        <span class="team-score" id="scoreR">0</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ROUND WIN --------------------------------------------------------- -->
+  <section id="v-round" class="celebrate hidden">
+    <img class="logo" src="logo.png" alt="">
+    <div class="who" id="rw-who"></div>
+    <div class="sub">wins the round</div>
+    <div class="amount" id="rw-amt"></div>
+    <div class="sub" id="rw-tot"></div>
+  </section>
+
+  <!-- GAME OVER --------------------------------------------------------- -->
+  <section id="v-over" class="celebrate hidden">
+    <img class="logo" src="logo.png" alt="">
+    <div class="who" id="go-who"></div>
+    <div class="finals" id="go-score"></div>
+    <div class="sub">Thanks for playing!</div>
+  </section>
+
+</div>
+
+<div class="strike-overlay hidden" id="sov"><img src="x.png" alt="X"></div>
+<div class="confetti hidden" id="confetti"></div>
+
+<script src="questions.js"></script>
+<script src="shared.js"></script>
+<script>
+if (Gate.require()) {
+
+const $ = id => document.getElementById(id);
+const views = {
+  setup: $('v-setup'), game: $('v-game'), round: $('v-round'), over: $('v-over')
+};
+
+/* ----------------------------------------------------------- setup form */
+let chosen = new Set(CATEGORIES);
+
+function drawCats() {
+  $('cats').innerHTML = '';
+  CATEGORIES.forEach(c => {
+    const el = document.createElement('div');
+    el.className = 'cat' + (chosen.has(c) ? ' on' : '');
+    el.innerHTML = '<span class="box"></span><span>' + c + '</span>';
+    el.onclick = () => {
+      if (chosen.has(c)) chosen.delete(c); else chosen.add(c);
+      drawCats();
+    };
+    $('cats').appendChild(el);
+  });
+}
+drawCats();
+
+$('start').onclick = () => {
+  if (!chosen.size) return;
+  Audio_.unlock();
+  Live.send('setup', {
+    teamA: $('teamA').value || 'Team 1',
+    teamB: $('teamB').value || 'Team 2',
+    categories: Array.from(chosen)
+  });
+};
+
+/* --------------------------------------------------------------- render */
+
+let lastQuestionId = null;
+let renderedTiles = [];
+
+function show(name) {
+  for (const k in views) views[k].classList.toggle('hidden', k !== name);
+}
+
+function buildBoard(q) {
+  const board = $('board');
+  board.innerHTML = '';
+  renderedTiles = [];
+  const n = q.answers.length;
+  const cols = n <= 4 ? 1 : 2;
+  const rows = Math.ceil(n / cols);
+  board.style.gridTemplateColumns = cols === 1 ? '1fr' : '1fr 1fr';
+  board.style.gridTemplateRows = 'repeat(' + rows + ', 1fr)';
+  board.style.gridAutoFlow = 'column';
+
+  for (let i = 0; i < rows * cols; i++) {
+    const tile = document.createElement('div');
+    tile.className = 'tile';
+    if (i >= n) {
+      tile.classList.add('blank');
+      tile.innerHTML = '<div class="tile-inner"><div class="face"></div></div>';
+      board.appendChild(tile);
+      renderedTiles.push(null);
+      continue;
+    }
+    tile.innerHTML =
+      '<div class="tile-inner">' +
+        '<div class="face front"><div class="slot center"><span class="ftext rank"></span></div></div>' +
+        '<div class="face back"><div class="slot answer"></div><div class="pts"></div></div>' +
+      '</div>' +
+      '<img class="check" src="check.png" alt="">';
+    board.appendChild(tile);
+    renderedTiles.push(tile);
+  }
+}
+
+function paintBoard(s) {
+  const q = s.question;
+  if (!q) return;
+  if (q.id !== lastQuestionId) {
+    lastQuestionId = q.id;
+    buildBoard(q);
+  }
+  $('qtext').textContent = q.text;
+  $('pill').textContent = 'Round ' + (s.roundIndex + 1) + ' of ' + s.totalRounds +
+    '  ·  ' + q.category;
+
+  q.answers.forEach((a, i) => {
+    const tile = renderedTiles[i];
+    if (!tile) return;
+    const revealed = s.revealed[i];
+    tile.classList.toggle('revealed', revealed);
+    const front = tile.querySelector('.ftext');
+    const slot = tile.querySelector('.front .slot');
+    if (a.shown > 0 && !revealed) {
+      slot.classList.remove('center');
+      front.className = 'ftext mask';
+      front.textContent = maskAnswer(a.text, a.shown);
+    } else {
+      slot.classList.add('center');
+      front.className = 'ftext rank';
+      front.textContent = String(i + 1);
+    }
+    tile.querySelector('.answer').textContent = a.text.toUpperCase();
+    tile.querySelector('.pts').textContent = a.points;
+  });
+
+  // strikes
+  const tray = $('tray');
+  if (tray.childElementCount !== s.strikes) {
+    tray.innerHTML = '';
+    for (let i = 0; i < s.strikes; i++) {
+      const img = document.createElement('img');
+      img.src = 'x.png';
+      tray.appendChild(img);
+    }
+  }
+
+  // steal banner
+  const steal = $('steal');
+  if (s.stealMode && s.control !== null) {
+    steal.classList.remove('hidden');
+    steal.textContent = 'STEAL!  ' + s.teams[s.control === 0 ? 1 : 0].name.toUpperCase() +
+      ', ONE GUESS';
+  } else {
+    steal.classList.add('hidden');
+  }
+
+  // scores
+  $('nameL').textContent = s.teams[0].name.toUpperCase();
+  $('nameR').textContent = s.teams[1].name.toUpperCase();
+  $('scoreL').textContent = s.teams[0].score;
+  $('scoreR').textContent = s.teams[1].score;
+  $('potv').textContent = s.pot;
+  $('teamL').classList.toggle('control', s.control === 0);
+  $('teamR').classList.toggle('control', s.control === 1);
+}
+
+function paintRoundWin(s) {
+  const t = s.roundWinner == null ? 0 : s.roundWinner;
+  $('rw-who').textContent = s.teams[t].name.toUpperCase();
+  $('rw-amt').textContent = '+' + s.roundAmount;
+  $('rw-tot').textContent = s.teams[0].name + ' ' + s.teams[0].score +
+    '   ·   ' + s.teams[1].name + ' ' + s.teams[1].score;
+}
+
+function paintGameOver(s) {
+  const a = s.teams[0], b = s.teams[1];
+  const tie = a.score === b.score;
+  $('go-who').textContent = tie ? "IT'S A TIE!" : (a.score > b.score ? a.name : b.name).toUpperCase() + ' WINS!';
+  $('go-score').textContent = a.name + ' ' + a.score + '   -   ' + b.name + ' ' + b.score;
+}
+
+Live.onState = s => {
+  Audio_.muted = s.muted;
+  if (s.phase === 'setup') { show('setup'); lastQuestionId = null; return; }
+  if (s.phase === 'question') { show('game'); paintBoard(s); return; }
+  if (s.phase === 'roundwin') { paintBoard(s); show('round'); paintRoundWin(s); return; }
+  if (s.phase === 'gameover') { show('over'); paintGameOver(s); }
+};
+
+/* --------------------------------------------------------- sfx + effects */
+
+function flashCheck(i) {
+  const tile = renderedTiles[i];
+  if (!tile) return;
+  tile.classList.remove('flash');
+  void tile.offsetWidth;      // restart the animation
+  tile.classList.add('flash');
+}
+
+function slamStrike() {
+  const sov = $('sov');
+  const img = sov.querySelector('img');
+  // aim the shrink at the strike tray so the X visibly flies up into it
+  const tray = $('tray').getBoundingClientRect();
+  const targetX = tray.left + tray.width - 30;
+  const targetY = tray.top + 24;
+  sov.style.setProperty('--fx', (targetX - window.innerWidth / 2) + 'px');
+  sov.style.setProperty('--fy', (targetY - window.innerHeight / 2) + 'px');
+  sov.classList.remove('hidden');
+  sov.classList.remove('go');
+  void img.offsetWidth;
+  sov.classList.add('go');
+  setTimeout(() => sov.classList.add('hidden'), 1650);
+}
+
+function confetti() {
+  const box = $('confetti');
+  box.innerHTML = '';
+  box.classList.remove('hidden');
+  const colors = ['#ffc94d', '#f0a824', '#ffffff', '#7d9bf5'];
+  for (let i = 0; i < 90; i++) {
+    const bit = document.createElement('i');
+    bit.style.left = Math.random() * 100 + 'vw';
+    bit.style.background = colors[i % colors.length];
+    bit.style.animationDuration = (2.4 + Math.random() * 2.2) + 's';
+    bit.style.animationDelay = (Math.random() * 1.2) + 's';
+    box.appendChild(bit);
+  }
+  setTimeout(() => box.classList.add('hidden'), 6000);
+}
+
+Live.onEvent = (ev, s) => {
+  switch (ev.type) {
+    case 'intro':
+      Audio_.stopAll();
+      Audio_.play('intro');
+      break;
+    case 'reveal':
+      Audio_.play('correct');
+      setTimeout(() => flashCheck(ev.index), 260);
+      break;
+    case 'strike':
+      Audio_.play('wrong');
+      slamStrike();
+      break;
+    case 'roundwin':
+      Audio_.play('roundwin');
+      confetti();
+      break;
+    case 'gameover':
+      Audio_.play('roundwin');
+      confetti();
+      break;
+    case 'replay':
+      Audio_.stopAll();
+      Audio_.play(ev.sound);
+      break;
+    case 'reset':
+      Audio_.stopAll();
+      lastQuestionId = null;
+      break;
+  }
+};
+
+Live.connect();
+
+}
+</script>
+</body>
+</html>

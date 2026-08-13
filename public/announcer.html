@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<title>Golden Games - Announcer</title>
+<link rel="icon" href="logo.png">
+<link rel="stylesheet" href="styles.css">
+<style>
+body { font-size: 18px; }
+.stage { min-height: 100%; }
+
+.pad { padding: 14px 14px 190px; }
+
+.hdr {
+  position: sticky; top: 0; z-index: 20;
+  background: linear-gradient(180deg, #0a1240 82%, rgba(10,18,64,0));
+  padding: 12px 14px 16px;
+  border-bottom: 2px solid rgba(240,168,36,0.35);
+}
+.hdr-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.round-pill {
+  font-size: 13px; letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--gold-bright); border: 2px solid var(--gold-dim);
+  border-radius: 999px; padding: 5px 11px;
+}
+.icon-btn {
+  width: 46px; height: 46px; border-radius: 12px; font-size: 22px;
+  background: rgba(255,255,255,0.08); border: 2px solid rgba(255,255,255,0.28);
+}
+.qtext { font-size: 22px; font-weight: 700; line-height: 1.35; margin-top: 10px; }
+
+.section-label {
+  font-size: 13px; letter-spacing: 0.18em; text-transform: uppercase;
+  color: #9fb0e8; margin: 20px 0 8px;
+}
+
+/* control */
+.control-row { display: flex; gap: 10px; }
+.ctrl {
+  flex: 1; padding: 18px 8px; border-radius: 14px; font-size: 19px;
+  background: rgba(255,255,255,0.07); border: 3px solid rgba(255,255,255,0.25);
+}
+.ctrl.on {
+  background: linear-gradient(180deg, var(--gold-bright), #cf8c0e);
+  color: #2a1a00; border-color: #ffeab6;
+}
+.ctrl small { display: block; font-size: 13px; opacity: 0.8; font-weight: 400; }
+
+/* answers */
+.ans {
+  display: flex; align-items: stretch; gap: 8px; margin-bottom: 10px;
+}
+.ans-main {
+  flex: 1; display: flex; align-items: center; gap: 10px;
+  padding: 14px 12px; border-radius: 14px; min-height: 66px;
+  background: linear-gradient(180deg, var(--tile-top), var(--tile-bot));
+  border: 3px solid #cfd8f7; font-size: 20px; font-weight: 700; text-align: left;
+}
+.ans.done .ans-main { background: linear-gradient(180deg, #3f9a5f, #1d6b39); border-color: #b6e8c6; }
+.ans-main .txt { flex: 1; }
+.ans-main .pt {
+  min-width: 46px; text-align: center; font-size: 22px;
+  border-left: 2px solid rgba(255,255,255,0.5); padding-left: 10px;
+}
+.ans-main img.tick { width: 26px; height: 26px; }
+.hint-btn {
+  width: 68px; border-radius: 14px; font-size: 24px;
+  background: rgba(255,255,255,0.08); border: 3px solid rgba(255,255,255,0.28);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+}
+.hint-btn small { font-size: 11px; opacity: 0.8; font-weight: 400; }
+.hint-btn:disabled { opacity: 0.25; }
+.mask-preview { font-size: 13px; color: #ffd98a; letter-spacing: 0.1em; margin: -4px 0 10px 4px; }
+
+/* steal */
+.steal-box {
+  border: 3px solid var(--gold-bright); border-radius: 16px; padding: 14px;
+  background: rgba(240,168,36,0.14); margin-top: 16px;
+}
+.steal-box .who { font-size: 20px; font-weight: 700; margin-bottom: 12px; text-align: center; }
+.steal-row { display: flex; gap: 10px; }
+.steal-row .btn { flex: 1; font-size: 18px; padding: 20px 6px; }
+
+/* award */
+.award-row { display: flex; gap: 10px; }
+.award-row .btn { flex: 1; font-size: 17px; padding: 16px 6px; }
+
+/* footer */
+.footer {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
+  display: flex; gap: 12px; padding: 14px 14px calc(14px + env(safe-area-inset-bottom));
+  background: linear-gradient(0deg, #050a22 78%, rgba(5,10,34,0));
+}
+.strike-btn {
+  width: 132px; flex: none; height: 92px; border-radius: 18px;
+  background: linear-gradient(180deg, #f26a6a, #a81919);
+  border: 4px solid #ffd0d0; box-shadow: 0 6px 0 #6f1010;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+}
+.strike-btn img { width: 34px; height: 34px; }
+.strike-btn span { font-size: 14px; letter-spacing: 0.12em; }
+.strike-btn:disabled { opacity: 0.35; }
+.next-btn { flex: 1; height: 92px; border-radius: 18px; font-size: 24px; }
+
+/* sheet */
+.sheet {
+  position: fixed; inset: 0; z-index: 50; background: rgba(3,6,20,0.9);
+  display: flex; flex-direction: column; justify-content: flex-end; padding: 14px;
+}
+.sheet-inner {
+  background: #0d1745; border: 3px solid var(--gold-dim); border-radius: 20px;
+  padding: 16px; display: flex; flex-direction: column; gap: 10px;
+  max-height: 86vh; overflow-y: auto;
+}
+.sheet .btn { width: 100%; font-size: 19px; padding: 16px; }
+.score-edit { display: flex; align-items: center; gap: 8px; }
+.score-edit .nm { flex: 1; font-size: 17px; }
+.score-edit button { width: 54px; height: 50px; border-radius: 12px; font-size: 22px;
+  background: rgba(255,255,255,0.09); border: 2px solid rgba(255,255,255,0.3); }
+
+.status { text-align: center; font-size: 16px; color: #9fb0e8; padding: 8px 0; }
+.big-msg { font-size: 30px; font-weight: 700; text-align: center; color: var(--gold-bright); }
+</style>
+</head>
+<body>
+<div class="dots"></div>
+<div class="stage">
+
+  <!-- SETUP -->
+  <section id="v-setup" class="pad hidden">
+    <div style="text-align:center;margin:18px 0">
+      <img src="logo.png" alt="Golden Games" style="width:70%;max-width:280px">
+    </div>
+    <div class="section-label">Team names</div>
+    <input id="teamA" class="field" style="width:100%;font-size:20px;margin-bottom:10px" placeholder="Team 1 name" maxlength="20">
+    <input id="teamB" class="field" style="width:100%;font-size:20px" placeholder="Team 2 name" maxlength="20">
+    <div class="section-label">Categories</div>
+    <div id="cats"></div>
+    <button id="start" class="btn btn-gold" style="width:100%;margin-top:18px;font-size:24px;padding:22px">Start the Game</button>
+  </section>
+
+  <!-- GAME -->
+  <section id="v-game" class="hidden">
+    <div class="hdr">
+      <div class="hdr-top">
+        <div class="round-pill" id="pill">Round 1 of 6</div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <div id="strikedots" style="display:flex;gap:4px"></div>
+          <button class="icon-btn" id="undo" title="Undo">↩</button>
+          <button class="icon-btn" id="menu" title="More">⋯</button>
+        </div>
+      </div>
+      <div class="qtext" id="qtext"></div>
+    </div>
+
+    <div class="pad">
+      <div class="section-label">Who has control?</div>
+      <div class="control-row">
+        <button class="ctrl" id="ctrlA"></button>
+        <button class="ctrl" id="ctrlB"></button>
+      </div>
+
+      <div class="section-label">Answers — tap to reveal</div>
+      <div id="answers"></div>
+
+      <div id="stealbox" class="steal-box hidden">
+        <div class="who" id="steal-who"></div>
+        <div class="steal-row">
+          <button class="btn btn-green" id="steal-good">Stole it!</button>
+          <button class="btn btn-red" id="steal-bad">Missed</button>
+        </div>
+      </div>
+
+      <div class="section-label">End the round — give the pot to</div>
+      <div class="award-row">
+        <button class="btn" id="awardA"></button>
+        <button class="btn" id="awardB"></button>
+      </div>
+      <p class="status" id="potline"></p>
+    </div>
+
+    <div class="footer">
+      <button class="strike-btn" id="strike">
+        <img src="x.png" alt=""><span>STRIKE</span>
+      </button>
+      <button class="btn btn-gold next-btn" id="bigaction">—</button>
+    </div>
+  </section>
+
+  <!-- ROUND WIN -->
+  <section id="v-round" class="pad hidden" style="padding-top:60px">
+    <div class="big-msg" id="rw-msg"></div>
+    <p class="status" id="rw-tot"></p>
+    <button class="btn btn-gold" id="nextround" style="width:100%;font-size:26px;padding:26px;margin-top:24px">Next Round →</button>
+    <button class="btn btn-ghost" id="rw-undo" style="width:100%;margin-top:12px">↩ Undo</button>
+  </section>
+
+  <!-- GAME OVER -->
+  <section id="v-over" class="pad hidden" style="padding-top:60px">
+    <div class="big-msg" id="go-msg"></div>
+    <p class="status" id="go-tot"></p>
+    <button class="btn btn-gold" id="playagain" style="width:100%;font-size:24px;padding:24px;margin-top:24px">Play Again</button>
+  </section>
+
+</div>
+
+<!-- more menu -->
+<div class="sheet hidden" id="sheet">
+  <div class="sheet-inner">
+    <div class="section-label" style="margin-top:0">Adjust scores</div>
+    <div class="score-edit">
+      <span class="nm" id="seA"></span>
+      <button data-t="0" data-d="-5">−5</button>
+      <button data-t="0" data-d="5">+5</button>
+      <button data-t="0" data-d="-25">−25</button>
+      <button data-t="0" data-d="25">+25</button>
+    </div>
+    <div class="score-edit">
+      <span class="nm" id="seB"></span>
+      <button data-t="1" data-d="-5">−5</button>
+      <button data-t="1" data-d="5">+5</button>
+      <button data-t="1" data-d="-25">−25</button>
+      <button data-t="1" data-d="25">+25</button>
+    </div>
+    <div class="section-label">Question</div>
+    <button class="btn btn-ghost" id="skip">⤼ Skip this question</button>
+    <div class="section-label">Sound</div>
+    <button class="btn btn-ghost" id="mute">🔊 Sound is ON</button>
+    <button class="btn btn-ghost" id="replay-intro">▶ Replay intro music</button>
+    <button class="btn btn-ghost" id="replay-win">▶ Replay round-win music</button>
+    <div class="section-label">Danger</div>
+    <button class="btn btn-red" id="reset">Reset the whole game (hold 2s)</button>
+    <button class="btn btn-gold" id="closesheet" style="margin-top:8px">Close</button>
+  </div>
+</div>
+
+<script src="questions.js"></script>
+<script src="shared.js"></script>
+<script>
+if (Gate.require()) {
+
+const $ = id => document.getElementById(id);
+const views = { setup: $('v-setup'), game: $('v-game'), round: $('v-round'), over: $('v-over') };
+function show(name) { for (const k in views) views[k].classList.toggle('hidden', k !== name); }
+
+/* ------------------------------------------------------------ setup form */
+let chosen = new Set(CATEGORIES);
+function drawCats() {
+  const box = $('cats');
+  box.innerHTML = '';
+  CATEGORIES.forEach(c => {
+    const el = document.createElement('div');
+    el.className = 'cat' + (chosen.has(c) ? ' on' : '');
+    el.style.cssText = 'display:flex;align-items:center;gap:12px;padding:14px;margin-bottom:8px;' +
+      'border-radius:14px;font-size:18px;border:3px solid ' +
+      (chosen.has(c) ? 'var(--gold-bright)' : 'rgba(255,255,255,0.28)') + ';background:' +
+      (chosen.has(c) ? 'rgba(240,168,36,0.16)' : 'rgba(255,255,255,0.05)');
+    el.innerHTML = '<span style="width:28px;height:28px;flex:none;border-radius:7px;border:3px solid var(--gold);' +
+      'display:flex;align-items:center;justify-content:center;color:#2a1a00;font-weight:700;background:' +
+      (chosen.has(c) ? 'var(--gold-bright)' : 'transparent') + '">' + (chosen.has(c) ? '✓' : '') + '</span><span>' + c + '</span>';
+    el.onclick = () => { chosen.has(c) ? chosen.delete(c) : chosen.add(c); drawCats(); };
+    box.appendChild(el);
+  });
+}
+drawCats();
+
+$('start').onclick = () => {
+  if (!chosen.size) { alert('Pick at least one category.'); return; }
+  Audio_.unlock();
+  Live.send('setup', {
+    teamA: $('teamA').value || 'Team 1',
+    teamB: $('teamB').value || 'Team 2',
+    categories: Array.from(chosen)
+  });
+};
+
+/* ---------------------------------------------------------------- render */
+let cur = null;
+let wasStealing = false;
+
+function paintGame(s) {
+  const q = s.question;
+  cur = s;
+  $('pill').textContent = 'Round ' + (s.roundIndex + 1) + '/' + s.totalRounds;
+  $('qtext').textContent = q.text;
+
+  const dots = $('strikedots');
+  dots.innerHTML = '';
+  for (let i = 0; i < 3; i++) {
+    const d = document.createElement('span');
+    d.style.cssText = 'width:14px;height:14px;border-radius:50%;border:2px solid #d33a3a;background:' +
+      (i < s.strikes ? '#d33a3a' : 'transparent');
+    dots.appendChild(d);
+  }
+
+  $('ctrlA').innerHTML = s.teams[0].name + '<small>' + s.teams[0].score + ' pts</small>';
+  $('ctrlB').innerHTML = s.teams[1].name + '<small>' + s.teams[1].score + ' pts</small>';
+  $('ctrlA').classList.toggle('on', s.control === 0);
+  $('ctrlB').classList.toggle('on', s.control === 1);
+
+  const box = $('answers');
+  box.innerHTML = '';
+  q.answers.forEach((a, i) => {
+    const revealed = s.revealed[i];
+    const row = document.createElement('div');
+    row.className = 'ans' + (revealed ? ' done' : '');
+    const main = document.createElement('button');
+    main.className = 'ans-main';
+    main.innerHTML = (revealed ? '<img class="tick" src="check.png" alt="">' : '') +
+      '<span class="txt">' + a.text + '</span><span class="pt">' + a.points + '</span>';
+    main.disabled = revealed;
+    main.onclick = () => Live.send('reveal', { index: i });
+
+    const hint = document.createElement('button');
+    hint.className = 'hint-btn';
+    hint.innerHTML = '💡<small>' + (revealed ? '—' : a.shown + '/' + a.length) + '</small>';
+    hint.disabled = revealed || a.shown >= a.length;
+    hint.onclick = () => Live.send('hint', { index: i });
+
+    row.appendChild(main);
+    row.appendChild(hint);
+    box.appendChild(row);
+
+    if (!revealed && a.shown > 0) {
+      const pv = document.createElement('div');
+      pv.className = 'mask-preview';
+      pv.textContent = 'on screen: ' + maskAnswer(a.text, a.shown);
+      box.appendChild(pv);
+    }
+  });
+
+  // steal
+  const inSteal = s.stealMode && s.control !== null;
+  $('stealbox').classList.toggle('hidden', !inSteal);
+  if (inSteal) {
+    $('steal-who').textContent = s.teams[s.control === 0 ? 1 : 0].name + ' gets ONE guess to steal ' + s.pot + ' points';
+    // the box sits below the answer list, so bring it to the thumb
+    if (!wasStealing) $('stealbox').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+  wasStealing = inSteal;
+
+  $('awardA').textContent = s.teams[0].name;
+  $('awardB').textContent = s.teams[1].name;
+  $('potline').textContent = 'Pot this round: ' + s.pot + ' points';
+
+  $('strike').disabled = s.strikes >= 3 || s.control === null;
+
+  const allRevealed = s.revealed.every(Boolean);
+  const big = $('bigaction');
+  if (inSteal) {
+    big.textContent = 'Judge the steal ↑';
+    big.disabled = true;
+  } else if (allRevealed && s.control !== null) {
+    big.textContent = 'Board cleared → award ' + s.pot;
+    big.disabled = false;
+    big.onclick = () => Live.send('awardRound', { team: s.control });
+  } else if (s.control === null) {
+    big.textContent = 'Pick who buzzed in ↑';
+    big.disabled = true;
+  } else {
+    big.textContent = s.teams[s.control].name + ' is up';
+    big.disabled = true;
+  }
+}
+
+Live.onState = s => {
+  $('mute').textContent = s.muted ? '🔇 Sound is OFF' : '🔊 Sound is ON';
+  $('seA').textContent = s.teams[0].name;
+  $('seB').textContent = s.teams[1].name;
+
+  if (s.phase === 'setup') { show('setup'); return; }
+  if (s.phase === 'question') { show('game'); paintGame(s); return; }
+  if (s.phase === 'roundwin') {
+    show('round');
+    const t = s.roundWinner || 0;
+    $('rw-msg').textContent = s.teams[t].name + '  +' + s.roundAmount;
+    $('rw-tot').textContent = s.teams[0].name + ' ' + s.teams[0].score + '  ·  ' +
+      s.teams[1].name + ' ' + s.teams[1].score +
+      (s.roundIndex + 1 >= s.totalRounds ? '  ·  last round!' : '');
+    $('nextround').textContent = (s.roundIndex + 1 >= s.totalRounds) ? 'See the winner →' : 'Next Round →';
+    return;
+  }
+  if (s.phase === 'gameover') {
+    show('over');
+    const a = s.teams[0], b = s.teams[1];
+    $('go-msg').textContent = a.score === b.score ? "It's a tie!" :
+      (a.score > b.score ? a.name : b.name) + ' wins!';
+    $('go-tot').textContent = a.name + ' ' + a.score + '  -  ' + b.name + ' ' + b.score;
+  }
+};
+
+/* --------------------------------------------------------------- actions */
+$('ctrlA').onclick = () => Live.send('assignControl', { team: 0 });
+$('ctrlB').onclick = () => Live.send('assignControl', { team: 1 });
+$('strike').onclick = () => Live.send('strike');
+$('undo').onclick = () => Live.send('undo');
+$('rw-undo').onclick = () => Live.send('undo');
+$('steal-good').onclick = () => Live.send('resolveSteal', { good: true });
+$('steal-bad').onclick = () => Live.send('resolveSteal', { good: false });
+$('awardA').onclick = () => Live.send('awardRound', { team: 0 });
+$('awardB').onclick = () => Live.send('awardRound', { team: 1 });
+$('nextround').onclick = () => Live.send('nextRound');
+$('playagain').onclick = () => Live.send('reset');
+
+/* sheet */
+$('menu').onclick = () => $('sheet').classList.remove('hidden');
+$('closesheet').onclick = () => $('sheet').classList.add('hidden');
+$('skip').onclick = () => { Live.send('skipQuestion'); $('sheet').classList.add('hidden'); };
+$('mute').onclick = () => Live.send('setMuted', { muted: !(Live.state && Live.state.muted) });
+$('replay-intro').onclick = () => Live.send('replay', { sound: 'intro' });
+$('replay-win').onclick = () => Live.send('replay', { sound: 'roundwin' });
+document.querySelectorAll('.score-edit button').forEach(b => {
+  b.onclick = () => Live.send('adjustScore', { team: +b.dataset.t, delta: +b.dataset.d });
+});
+
+/* hold-to-confirm reset so a stray thumb can't wipe the game */
+let holdTimer = null;
+const resetBtn = $('reset');
+function startHold() {
+  resetBtn.textContent = 'Keep holding…';
+  holdTimer = setTimeout(() => {
+    Live.send('reset');
+    $('sheet').classList.add('hidden');
+    resetBtn.textContent = 'Reset the whole game (hold 2s)';
+  }, 2000);
+}
+function cancelHold() {
+  clearTimeout(holdTimer);
+  resetBtn.textContent = 'Reset the whole game (hold 2s)';
+}
+resetBtn.addEventListener('pointerdown', startHold);
+resetBtn.addEventListener('pointerup', cancelHold);
+resetBtn.addEventListener('pointerleave', cancelHold);
+resetBtn.addEventListener('pointercancel', cancelHold);
+
+Live.connect();
+
+}
+</script>
+</body>
+</html>

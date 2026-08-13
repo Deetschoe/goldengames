@@ -1,0 +1,144 @@
+/* Golden Games - shared theme
+   Navy + gold, oversized type, slow readable motion. */
+
+:root {
+  --navy-deep: #080f33;
+  --navy: #0e1a4d;
+  --navy-mid: #16265f;
+  --gold: #f0a824;
+  --gold-bright: #ffc94d;
+  --gold-dim: #9a6a1a;
+  --tile-top: #7d9bf5;
+  --tile-mid: #3a5ed8;
+  --tile-bot: #2440a8;
+  --ink: #ffffff;
+  --green: #2fbf5f;
+  --red: #d33a3a;
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: var(--navy-deep);
+  color: var(--ink);
+  font-family: Georgia, 'Times New Roman', serif;
+  overscroll-behavior: none;
+}
+
+/* gold polka-dot field behind everything */
+.dots {
+  position: fixed;
+  inset: 0;
+  background-color: var(--navy-deep);
+  background-image: radial-gradient(circle, var(--gold-dim) 0 26%, transparent 27%);
+  background-size: 74px 74px;
+  opacity: 0.9;
+  z-index: 0;
+}
+
+.stage {
+  position: relative;
+  z-index: 1;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.hidden { display: none !important; }
+
+/* ------------------------------------------------------------ typography */
+
+h1, h2, h3 { margin: 0; font-weight: 700; letter-spacing: 0.01em; }
+
+.script-gold {
+  color: var(--gold-bright);
+  text-shadow: 0 3px 0 #6b4508, 0 0 26px rgba(240, 168, 36, 0.45);
+}
+
+/* --------------------------------------------------------------- buttons */
+
+button {
+  font-family: inherit;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  color: #fff;
+}
+
+.btn {
+  background: linear-gradient(180deg, var(--tile-top), var(--tile-bot));
+  border: 3px solid #cfd8f7;
+  border-radius: 14px;
+  padding: 18px 22px;
+  font-size: 22px;
+  box-shadow: 0 5px 0 #16276b;
+  transition: transform 0.12s ease, filter 0.12s ease;
+}
+.btn:active { transform: translateY(4px); box-shadow: 0 1px 0 #16276b; }
+.btn:disabled { opacity: 0.38; cursor: default; transform: none; }
+
+.btn-gold {
+  background: linear-gradient(180deg, var(--gold-bright), #d98a10);
+  border-color: #ffe6a8;
+  color: #2a1a00;
+  box-shadow: 0 5px 0 #8a5a08;
+}
+.btn-green {
+  background: linear-gradient(180deg, #52d67f, #1e9b48);
+  border-color: #c6f4d5;
+  box-shadow: 0 5px 0 #14682f;
+}
+.btn-red {
+  background: linear-gradient(180deg, #f26a6a, #b32020);
+  border-color: #ffd0d0;
+  box-shadow: 0 5px 0 #7c1414;
+}
+.btn-ghost {
+  background: rgba(255, 255, 255, 0.06);
+  border: 3px solid rgba(255, 255, 255, 0.28);
+  box-shadow: none;
+}
+
+/* ----------------------------------------------------------- entry screens */
+
+.entry {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 26px;
+  padding: 28px;
+  text-align: center;
+}
+
+.entry-logo {
+  width: min(460px, 78vw);
+  max-height: 34vh;
+  object-fit: contain;
+  filter: drop-shadow(0 10px 28px rgba(0, 0, 0, 0.6));
+}
+
+.field {
+  width: min(460px, 90vw);
+  font-family: Georgia, serif;
+  font-size: 26px;
+  padding: 18px 20px;
+  border-radius: 14px;
+  border: 3px solid var(--gold);
+  background: #071033;
+  color: #fff;
+  text-align: center;
+}
+.field:focus { outline: none; border-color: var(--gold-bright); }
+
+.tagline { font-size: 22px; color: #c7d0f2; max-width: 620px; line-height: 1.5; }
+.error { color: #ff9a9a; font-size: 20px; min-height: 24px; }
+
+/* full-size dots are made for a TV; on a phone they swamp the controls */
+@media (max-width: 700px) {
+  .dots { background-size: 38px 38px; opacity: 0.3; }
+}
