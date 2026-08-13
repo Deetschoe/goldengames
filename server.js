@@ -15,6 +15,8 @@ const os = require('os');
 
 const PORT = process.env.PORT || 3000;
 const PUBLIC_DIR = path.join(__dirname, 'public');
+const DATA_DIR = path.join(__dirname, 'data');
+const CUSTOM_FILE = path.join(DATA_DIR, 'custom-questions.json');
 const TOTAL_ROUNDS = 6;
 
 // ---------------------------------------------------------------- questions
@@ -28,11 +30,109 @@ function loadQuestions() {
   return sandbox.QUESTIONS;
 }
 
-let ALL_QUESTIONS = [];
+let BUILTIN_QUESTIONS = [];
 try {
-  ALL_QUESTIONS = loadQuestions();
+  BUILTIN_QUESTIONS = loadQuestions();
 } catch (err) {
   console.error('Could not load public/questions.js:', err.message);
+}
+
+const BUILTIN_NAMES = new Set(BUILTIN_QUESTIONS.map(q => q.category));
+
+// Categories the announcer wrote on the phone, kept in data/custom-questions.json.
+// NOTE: a container filesystem is wiped on redeploy. On Railway this file only
+// survives if a volume is mounted at /app/data - otherwise treat it as a
+// scratchpad and commit the export to the repo to keep a category for good.
+let CUSTOM_CATEGORIES = [];
+let ALL_QUESTIONS = [];
+
+function loadCustom() {
+  try {
+    const parsed = JSON.parse(fs.readFileSync(CUSTOM_FILE, 'utf8'));
+    return Array.isArray(parsed) ? parsed.filter(c => c && c.name && Array.isArray(c.questions)) : [];
+  } catch (_) {
+    return [];               // missing or unreadable: start empty, never crash
+  }
+}
+
+function saveCustom() {
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+  fs.writeFileSync(CUSTOM_FILE, JSON.stringify(CUSTOM_CATEGORIES, null, 2));
+}
+
+function rebuildQuestions() {
+  ALL_QUESTIONS = BUILTIN_QUESTIONS.slice();
+  CUSTOM_CATEGORIES.forEach(c => { ALL_QUESTIONS = ALL_QUESTIONS.concat(c.questions); });
+}
+
+CUSTOM_CATEGORIES = loadCustom();
+rebuildQuestions();
+
+/* Every category the setup screens can offer, with how many questions sit
+   behind it. Built-ins first, then whatever the announcer has written. */
+function catalog() {
+  const counts = new Map();
+  ALL_QUESTIONS.forEach(q => counts.set(q.category, (counts.get(q.category) || 0) + 1));
+  const out = [];
+  counts.forEach((count, name) => out.push({ name, count, custom: !BUILTIN_NAMES.has(name) }));
+  return out;
+}
+
+/* A plausible survey curve for answers whose points were left blank: the top
+   answer takes the biggest share and the rest fall away, summing to ~100. */
+function spreadPoints(n) {
+  const weights = [];
+  for (let i = 0; i < n; i++) weights.push(Math.pow(0.66, i));
+  const total = weights.reduce((a, b) => a + b, 0);
+  return weights.map(w => Math.max(1, Math.round((w / total) * 100)));
+}
+
+/* Turns whatever the phone posted into questions the board can render, or
+   returns an error to show the announcer. Everything here is untrusted: it
+   arrives over the network and gets written to disk. */
+function normalizeCategory(rawName, rawQuestions) {
+  const name = String(rawName == null ? '' : rawName).trim().replace(/\s+/g, ' ').slice(0, 40);
+  if (name.length < 2) return { error: 'Give the category a name.' };
+  if (BUILTIN_NAMES.has(name)) return { error: '"' + name + '" is already a built-in category.' };
+  if (!Array.isArray(rawQuestions) || !rawQuestions.length) return { error: 'Add at least one question.' };
+  if (rawQuestions.length > 200) return { error: 'That is more than 200 questions.' };
+
+  const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'custom';
+  const questions = [];
+
+  for (let i = 0; i < rawQuestions.length; i++) {
+    const raw = rawQuestions[i] || {};
+    const text = String(raw.text || raw.question || '').trim().replace(/\s+/g, ' ').slice(0, 200);
+    if (!text) return { error: 'Question ' + (i + 1) + ' has no text.' };
+
+    let answers = (Array.isArray(raw.answers) ? raw.answers : [])
+      .map(a => (typeof a === 'string' ? { text: a } : (a || {})))
+      .map(a => ({
+        text: String(a.text || '').trim().replace(/\s+/g, ' ').slice(0, 24),
+        points: Math.round(Number(a.points))
+      }))
+      .filter(a => a.text);
+
+    if (answers.length < 2) return { error: 'Question ' + (i + 1) + ' needs at least 2 answers.' };
+    if (answers.length > 8) answers = answers.slice(0, 8);
+
+    // any answer left without points gets one off the curve
+    if (answers.some(a => !(a.points > 0))) {
+      const curve = spreadPoints(answers.length);
+      answers.forEach((a, j) => { if (!(a.points > 0)) a.points = curve[j]; });
+    }
+    answers.forEach(a => { a.points = Math.min(99, Math.max(1, a.points)); });
+    answers.sort((a, b) => b.points - a.points);   // the board expects descending
+
+    questions.push({
+      id: slug + '-' + String(i + 1).padStart(2, '0'),
+      category: name,
+      text,
+      answers
+    });
+  }
+
+  return { category: { name, questions } };
 }
 
 // -------------------------------------------------------------------- state
@@ -127,6 +227,9 @@ const actions = {
     state.teams[1].name = (p.teamB || 'Team 2').trim().slice(0, 20) || 'Team 2';
     state.categories = cats;
     state.questions = pickQuestions(cats, TOTAL_ROUNDS);
+    if (!state.questions.length) return { error: 'Those categories have no questions in them.' };
+    // a thin category plays a shorter game rather than running the board dry
+    state.totalRounds = Math.min(TOTAL_ROUNDS, state.questions.length);
     state.questions.forEach(q => usedQuestionIds.add(q.id));
     state.phase = 'question';
     resetBoard();
@@ -258,6 +361,39 @@ const actions = {
     usedQuestionIds = new Set();
     undoStack.length = 0;
     fire('reset');
+  },
+
+  /* Categories written on the announcer's phone. Saving one under a name that
+     already exists replaces it, so fixing a typo is not a second category. */
+  createCategory(p) {
+    const r = normalizeCategory(p.name, p.questions);
+    if (r.error) return { error: r.error };
+    const key = r.category.name.toLowerCase();
+    const at = CUSTOM_CATEGORIES.findIndex(c => c.name.toLowerCase() === key);
+    if (at >= 0) CUSTOM_CATEGORIES[at] = r.category;
+    else CUSTOM_CATEGORIES.push(r.category);
+    try {
+      saveCustom();
+    } catch (err) {
+      // keep it in memory so tonight's game still works, but say so
+      rebuildQuestions();
+      fire('catalog');
+      return { error: 'Saved for this session only - could not write the file: ' + err.message };
+    }
+    rebuildQuestions();
+    fire('catalog');
+    return { name: r.category.name, count: r.category.questions.length, replaced: at >= 0 };
+  },
+
+  deleteCategory(p) {
+    const key = String(p.name == null ? '' : p.name).toLowerCase();
+    const before = CUSTOM_CATEGORIES.length;
+    CUSTOM_CATEGORIES = CUSTOM_CATEGORIES.filter(c => c.name.toLowerCase() !== key);
+    if (CUSTOM_CATEGORIES.length === before) return { error: 'There is no custom category by that name.' };
+    try { saveCustom(); } catch (_) {}
+    rebuildQuestions();
+    fire('catalog');
+    return { deleted: true };
   }
 };
 
@@ -285,6 +421,7 @@ function publicState() {
   } else {
     view.question = null;
   }
+  view.catalog = catalog();
   delete view.questions;
   return view;
 }
@@ -372,17 +509,35 @@ const server = http.createServer((req, res) => {
         return;
       }
       const fn = actions[msg.action];
+      let result = null;
       if (fn) {
         try {
-          fn(msg);
+          result = fn(msg);
         } catch (err) {
           console.error('action error', msg.action, err);
+          result = { error: 'Something went wrong on the server.' };
         }
         broadcast();
       }
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end('{"ok":true}');
+      // actions that validate input answer back so the phone can say why
+      res.end(JSON.stringify(
+        result && result.error ? { ok: false, error: result.error } : { ok: true, result: result }
+      ));
     });
+    return;
+  }
+
+  // the custom categories as a file, so a category written on the phone can be
+  // downloaded and committed to the repo instead of living on a disk that a
+  // redeploy will wipe
+  if (pathname === '/custom-questions.json') {
+    res.writeHead(200, {
+      'Content-Type': 'application/json',
+      'Content-Disposition': 'attachment; filename="custom-questions.json"',
+      'Cache-Control': 'no-cache'
+    });
+    res.end(JSON.stringify(CUSTOM_CATEGORIES, null, 2));
     return;
   }
 
@@ -412,7 +567,11 @@ server.listen(PORT, '0.0.0.0', () => {
   console.log('\n' + bar);
   console.log('  GOLDEN GAMES is running');
   console.log(bar);
-  console.log('  Questions loaded: ' + ALL_QUESTIONS.length);
+  console.log('  Questions loaded: ' + ALL_QUESTIONS.length +
+    (CUSTOM_CATEGORIES.length
+      ? ' (' + CUSTOM_CATEGORIES.length + ' custom ' +
+        (CUSTOM_CATEGORIES.length === 1 ? 'category' : 'categories') + ')'
+      : ''));
   console.log('');
   console.log('  BIG SCREEN (TV / laptop):');
   console.log('     http://' + ip + ':' + PORT + '/play');

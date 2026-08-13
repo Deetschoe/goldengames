@@ -112,12 +112,16 @@ const Live = {
     src.onerror = () => { /* EventSource retries on its own */ };
   },
 
+  /* Resolves to { ok: true, result } or { ok: false, error }. Most callers
+     fire and forget; the ones that validate input read the answer. */
   send(action, payload) {
     return fetch('/action', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(Object.assign({ action }, payload || {}))
-    }).catch(() => {});
+    })
+      .then(r => r.json())
+      .catch(() => ({ ok: false, error: 'Lost the connection to the game server.' }));
   }
 };
 
@@ -140,7 +144,8 @@ const ICONS = {
   soundOff: '<path d="M3.5 9.2v5.6H7L12.5 19V5L7 9.2H3.5Z"/><path d="m16.5 9.5 5 5"/><path d="m21.5 9.5-5 5"/>',
   play: '<path d="M8 5.2v13.6L18.5 12 8 5.2Z" fill="currentColor"/>',
   swap: '<path d="M20 12a8 8 0 1 1-2.3-5.6"/><path d="M20 3.6V8.5h-4.9"/>',
-  check: '<path d="m4.5 12.4 4.8 4.8L19.5 6.6" stroke-width="3"/>'
+  check: '<path d="m4.5 12.4 4.8 4.8L19.5 6.6" stroke-width="3"/>',
+  plus: '<path d="M12 5v14"/><path d="M5 12h14"/>'
 };
 
 /* icon('bulb', 26) -> an svg string ready to drop into innerHTML */
@@ -152,6 +157,13 @@ function icon(name, size) {
 }
 
 /* ----------------------------------------------------------------- helpers */
+
+/* Category, question and answer text can come from whatever the announcer
+   typed on the phone, so anything heading into innerHTML gets escaped. */
+function escHtml(s) {
+  return String(s == null ? '' : s).replace(/[&<>"]/g, ch =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
+}
 
 /* "SNICKERS" with 4 letters shown -> "SNIC _ _ _ _"
    Word gaps use non-breaking spaces; plain runs of spaces collapse in HTML

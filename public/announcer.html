@@ -26,9 +26,9 @@ body { font-size: 18px; }
 }
 .hdr-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .round-pill {
-  font-size: 13px; letter-spacing: 0.12em; text-transform: uppercase;
+  font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase;
   color: var(--gold-bright); border: 2px solid var(--gold-dim);
-  border-radius: 999px; padding: 5px 11px;
+  border-radius: 999px; padding: 5px 10px; white-space: nowrap;
 }
 .icon-btn {
   width: 46px; height: 46px; border-radius: 12px;
@@ -147,7 +147,58 @@ body { font-size: 18px; }
 .score-edit button { width: 54px; height: 50px; border-radius: 12px; font-size: 22px;
   background: rgba(255,255,255,0.09); border: 2px solid rgba(255,255,255,0.3); }
 
+/* ------------------------------------------------- create a category */
+/* .field from styles.css is the big centred password box; the compose form
+   wants full-width left-aligned inputs instead. */
+.nc-field {
+  width: 100%; box-sizing: border-box;
+  font-family: Georgia, serif; font-size: 18px; text-align: left;
+  padding: 13px 12px; border-radius: 12px;
+  border: 3px solid var(--gold-dim); background: #071033; color: #fff;
+}
+.nc-field:focus { outline: none; border-color: var(--gold-bright); }
+textarea.nc-field { min-height: 86px; line-height: 1.35; resize: vertical; }
+
+.ansrow { display: flex; gap: 8px; margin-bottom: 8px; }
+.ansrow .nc-field { flex: 1; min-width: 0; }
+.ansrow .pts { width: 78px; flex: none; text-align: center; }
+.ansrow .kill, .cat-kill {
+  flex: none; border-radius: 11px; font-size: 22px; color: #ffb3b3;
+  background: rgba(255,255,255,0.06); border: 2px solid rgba(255,255,255,0.24);
+}
+.ansrow .kill { width: 48px; }
+.ansrow .kill:disabled { opacity: 0.25; }
+.cat-kill { width: 42px; height: 42px; font-size: 19px; background: rgba(0,0,0,0.25); }
+
+.qcard {
+  display: flex; align-items: center; gap: 10px; padding: 11px;
+  border-radius: 12px; margin-bottom: 8px; font-size: 16px; line-height: 1.3;
+  background: rgba(255,255,255,0.06); border: 2px solid rgba(255,255,255,0.2);
+}
+.qcard .n { color: var(--gold-bright); font-weight: 700; flex: none; }
+.qcard .body { flex: 1; text-align: left; min-width: 0; }
+.qcard .body small { display: block; color: #9fb0e8; font-size: 13px; margin-top: 3px; }
+.qcard button {
+  width: 44px; height: 44px; flex: none; border-radius: 10px; font-size: 17px;
+  background: rgba(255,255,255,0.07); border: 2px solid rgba(255,255,255,0.24);
+}
+
+.nc-msg { font-size: 16px; line-height: 1.4; min-height: 22px; padding: 8px 0; text-align: center; }
+.nc-msg.bad { color: #ff9a9a; }
+.nc-msg.good { color: #9be8b4; }
+.cat-count { font-size: 14px; color: #9fb0e8; }
+
 .status { text-align: center; font-size: 16px; color: #9fb0e8; padding: 8px 0; }
+.status a { color: var(--gold-bright); }
+.nc-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding-bottom: 6px; border-bottom: 2px solid rgba(240,168,36,0.3);
+}
+.nc-head h2 { margin: 0; font-size: 22px; color: var(--gold-bright); font-weight: 700; }
+.nc-head button {
+  flex: none; font-size: 16px; padding: 10px 14px; border-radius: 11px;
+  background: rgba(255,255,255,0.07); border: 2px solid rgba(255,255,255,0.28);
+}
 .big-msg { font-size: 30px; font-weight: 700; text-align: center; color: var(--gold-bright); }
 </style>
 </head>
@@ -164,8 +215,48 @@ body { font-size: 18px; }
     <input id="teamA" class="field" style="width:100%;font-size:20px;margin-bottom:10px" placeholder="Team 1 name" maxlength="20">
     <input id="teamB" class="field" style="width:100%;font-size:20px" placeholder="Team 2 name" maxlength="20">
     <div class="section-label">Categories</div>
+    <button id="newcat" class="btn btn-ghost" style="width:100%;margin-bottom:12px;font-size:18px;padding:14px;display:flex;align-items:center;justify-content:center;gap:10px">Create a category</button>
     <div id="cats"></div>
-    <button id="start" class="btn btn-gold" style="width:100%;margin-top:18px;font-size:24px;padding:22px">Start the Game</button>
+    <p class="nc-msg good" id="setup-msg"></p>
+    <button id="start" class="btn btn-gold" style="width:100%;margin-top:10px;font-size:24px;padding:22px">Start the Game</button>
+    <p class="status hidden" id="export-line">
+      <a href="/custom-questions.json" download>Download your categories as a JSON file</a>
+    </p>
+  </section>
+
+  <!-- CREATE A CATEGORY -->
+  <section id="v-newcat" class="pad hidden">
+    <div class="nc-head">
+      <h2>Create a category</h2>
+      <button id="nc-back-top">Back</button>
+    </div>
+    <div class="section-label" style="margin-top:14px">Name this category</div>
+    <input id="nc-name" class="nc-field" placeholder="e.g. Church Picnics" maxlength="40">
+
+    <div class="section-label">Write a question</div>
+    <textarea id="nc-q" class="nc-field" maxlength="200"
+      placeholder="Name something you'd find in a 1950s kitchen."></textarea>
+
+    <div class="section-label">Answers — best answer first</div>
+    <div id="nc-answers"></div>
+    <button id="nc-addans" class="btn btn-ghost" style="width:100%;font-size:17px;padding:13px">Add another answer</button>
+    <button id="nc-addq" class="btn btn-gold" style="width:100%;margin-top:10px;font-size:20px;padding:16px">Add this question</button>
+    <p class="nc-msg" id="nc-msg"></p>
+
+    <div class="section-label">In this category — <span id="nc-count">nothing yet</span></div>
+    <div id="nc-list"></div>
+
+    <button id="nc-json" class="btn btn-ghost" style="width:100%;font-size:17px;padding:13px;margin-top:6px">Paste questions as JSON</button>
+    <div id="nc-jsonbox" class="hidden" style="margin-top:10px">
+      <textarea id="nc-jsontext" class="nc-field" spellcheck="false"
+        style="min-height:160px;font-family:ui-monospace,Menlo,monospace;font-size:13px"
+        placeholder='[{"text":"Name a candy bar.","answers":[{"text":"Snickers","points":40},{"text":"Baby Ruth","points":25}]}]'></textarea>
+      <button id="nc-import" class="btn btn-ghost" style="width:100%;margin-top:8px;font-size:17px;padding:13px">Import them</button>
+      <p class="status" style="text-align:left">Points are optional — leave them out and the board spreads them like a survey.</p>
+    </div>
+
+    <button id="nc-save" class="btn btn-gold" style="width:100%;margin-top:20px;font-size:22px;padding:20px">Save this category</button>
+    <button id="nc-back" class="btn btn-ghost" style="width:100%;margin-top:10px;font-size:18px;padding:14px">Back to setup</button>
   </section>
 
   <!-- GAME -->
@@ -269,8 +360,16 @@ body { font-size: 18px; }
 if (Gate.require()) {
 
 const $ = id => document.getElementById(id);
-const views = { setup: $('v-setup'), game: $('v-game'), round: $('v-round'), over: $('v-over') };
+const views = {
+  setup: $('v-setup'), newcat: $('v-newcat'), game: $('v-game'),
+  round: $('v-round'), over: $('v-over')
+};
+/* Only jump to the top when the view genuinely changes - state arrives on
+   every tap, and scrolling on each one would fight the announcer's thumb. */
+let curView = null;
 function show(name) {
+  if (curView === name) return;
+  curView = name;
   for (const k in views) views[k].classList.toggle('hidden', k !== name);
   window.scrollTo(0, 0);
 }
@@ -279,41 +378,348 @@ function show(name) {
 $('undo').innerHTML = icon('undo', 24);
 $('menu').innerHTML = icon('more', 24);
 $('rw-undo').innerHTML = icon('undo', 22) + '<span>Undo</span>';
+$('newcat').innerHTML = icon('plus', 22) + '<span>Create a category</span>';
 $('skip').innerHTML = icon('swap', 22) + '<span>Skip this question</span>';
 $('replay-intro').innerHTML = icon('play', 20) + '<span>Replay intro music</span>';
 $('replay-win').innerHTML = icon('play', 20) + '<span>Replay round-win music</span>';
 
 /* ------------------------------------------------------------ setup form */
+
+/* The three built-ins are all we know until the first state arrives; after
+   that the server's catalog owns the list, custom categories included. */
+let catalogList = CATEGORIES.map(name => ({ name, count: 0, custom: false }));
 let chosen = new Set(CATEGORIES);
+let catSig = '';
+
+function setCatalog(list) {
+  if (!Array.isArray(list) || !list.length) return;
+  const sig = list.map(c => c.name + ':' + c.count).join('|');
+  if (sig === catSig) return;
+  catSig = sig;
+  const known = new Set(catalogList.map(c => c.name));
+  catalogList = list;
+  // a category that just appeared was almost certainly just written - tick it
+  list.forEach(c => { if (!known.has(c.name)) chosen.add(c.name); });
+  chosen.forEach(n => { if (!list.some(c => c.name === n)) chosen.delete(n); });
+  $('export-line').classList.toggle('hidden', !list.some(c => c.custom));
+  drawCats();
+}
+
 function drawCats() {
   const box = $('cats');
   box.innerHTML = '';
-  CATEGORIES.forEach(c => {
+  catalogList.forEach(c => {
+    const on = chosen.has(c.name);
     const el = document.createElement('div');
-    el.className = 'cat' + (chosen.has(c) ? ' on' : '');
-    el.style.cssText = 'display:flex;align-items:center;gap:12px;padding:14px;margin-bottom:8px;' +
+    el.className = 'cat' + (on ? ' on' : '');
+    el.style.cssText = 'display:flex;align-items:center;gap:10px;padding:12px 14px;margin-bottom:8px;' +
       'border-radius:14px;font-size:18px;border:3px solid ' +
-      (chosen.has(c) ? 'var(--gold-bright)' : 'rgba(255,255,255,0.28)') + ';background:' +
-      (chosen.has(c) ? 'rgba(240,168,36,0.16)' : 'rgba(255,255,255,0.05)');
-    el.innerHTML = '<span style="width:30px;height:30px;flex:none;border-radius:7px;border:3px solid var(--gold);' +
+      (on ? 'var(--gold-bright)' : 'rgba(255,255,255,0.28)') + ';background:' +
+      (on ? 'rgba(240,168,36,0.16)' : 'rgba(255,255,255,0.05)');
+
+    const label = document.createElement('div');
+    label.style.cssText = 'flex:1;min-width:0;display:flex;align-items:center;gap:12px;text-align:left';
+    label.innerHTML = '<span style="width:30px;height:30px;flex:none;border-radius:7px;border:3px solid var(--gold);' +
       'display:flex;align-items:center;justify-content:center;color:#2a1a00;background:' +
-      (chosen.has(c) ? 'var(--gold-bright)' : 'transparent') + '">' +
-      (chosen.has(c) ? icon('check', 18) : '') + '</span><span>' + c + '</span>';
-    el.onclick = () => { chosen.has(c) ? chosen.delete(c) : chosen.add(c); drawCats(); };
+      (on ? 'var(--gold-bright)' : 'transparent') + '">' + (on ? icon('check', 18) : '') + '</span>' +
+      '<span>' + escHtml(c.name) +
+      (c.count ? ' <span class="cat-count">' + c.count + '</span>' : '') + '</span>';
+    label.onclick = () => { on ? chosen.delete(c.name) : chosen.add(c.name); drawCats(); };
+    el.appendChild(label);
+
+    if (c.custom) {
+      const kill = document.createElement('button');
+      kill.className = 'cat-kill';
+      kill.textContent = '×';
+      kill.setAttribute('aria-label', 'Delete ' + c.name);
+      kill.onclick = e => {
+        e.stopPropagation();
+        if (!confirm('Delete "' + c.name + '" and its ' + c.count + ' questions?')) return;
+        Live.send('deleteCategory', { name: c.name }).then(r => {
+          setupMsg(r && r.ok ? 'Deleted "' + c.name + '".' : (r && r.error) || 'Could not delete that.');
+        });
+      };
+      el.appendChild(kill);
+    }
     box.appendChild(el);
   });
 }
 drawCats();
 
+function setupMsg(text) { $('setup-msg').textContent = text || ''; }
+
 $('start').onclick = () => {
-  if (!chosen.size) { alert('Pick at least one category.'); return; }
+  if (!chosen.size) { setupMsg('Pick at least one category.'); return; }
   Audio_.unlock();
   Live.send('setup', {
     teamA: $('teamA').value || 'Team 1',
     teamB: $('teamB').value || 'Team 2',
     categories: Array.from(chosen)
+  }).then(r => { if (r && !r.ok) setupMsg(r.error); });
+};
+
+/* --------------------------------------------------- create a category */
+
+/* Typing twenty questions on a phone is a long sit, so the draft is written
+   to localStorage on every keystroke - a stray tap or a locked screen must
+   not cost the announcer the whole evening's work. */
+const DRAFT_KEY = 'gg-cat-draft';
+let composing = false;
+
+function blankAnswers() {
+  return [0, 1, 2, 3].map(() => ({ text: '', points: '' }));
+}
+function loadDraft() {
+  try {
+    const d = JSON.parse(localStorage.getItem(DRAFT_KEY));
+    if (d && Array.isArray(d.questions) && Array.isArray(d.answers) && d.answers.length >= 2) return d;
+  } catch (_) {}
+  return { name: '', qtext: '', answers: blankAnswers(), questions: [] };
+}
+function saveDraft() {
+  try { localStorage.setItem(DRAFT_KEY, JSON.stringify(draft)); } catch (_) {}
+}
+let draft = loadDraft();
+
+function ncMsg(text, good) {
+  const el = $('nc-msg');
+  el.textContent = text || '';
+  el.className = 'nc-msg' + (text ? (good ? ' good' : ' bad') : '');
+}
+
+/* the inputs are the source of truth while they are on screen */
+function readForm() {
+  draft.name = $('nc-name').value;
+  draft.qtext = $('nc-q').value;
+  saveDraft();
+}
+
+function drawAnswerRows() {
+  const box = $('nc-answers');
+  box.innerHTML = '';
+  draft.answers.forEach((a, i) => {
+    const row = document.createElement('div');
+    row.className = 'ansrow';
+
+    const t = document.createElement('input');
+    t.className = 'nc-field';
+    t.maxLength = 24;
+    t.value = a.text;
+    t.placeholder = 'Answer ' + (i + 1);
+    t.oninput = () => { draft.answers[i].text = t.value; saveDraft(); };
+
+    const p = document.createElement('input');
+    p.className = 'nc-field pts';
+    p.inputMode = 'numeric';
+    p.maxLength = 2;
+    p.value = a.points;
+    p.placeholder = 'pts';
+    p.oninput = () => { draft.answers[i].points = p.value; saveDraft(); };
+
+    const k = document.createElement('button');
+    k.className = 'kill';
+    k.textContent = '×';
+    k.setAttribute('aria-label', 'Remove answer ' + (i + 1));
+    k.disabled = draft.answers.length <= 2;
+    k.onclick = () => { draft.answers.splice(i, 1); saveDraft(); drawAnswerRows(); };
+
+    row.appendChild(t);
+    row.appendChild(p);
+    row.appendChild(k);
+    box.appendChild(row);
+  });
+  $('nc-addans').disabled = draft.answers.length >= 8;
+}
+
+function drawQList() {
+  const box = $('nc-list');
+  const n = draft.questions.length;
+  $('nc-count').textContent = n ? n + (n === 1 ? ' question' : ' questions') : 'nothing yet';
+  box.innerHTML = '';
+  if (!n) {
+    box.innerHTML = '<p class="status" style="text-align:left;padding:0 0 6px">' +
+      'A game plays six of these, picked at random. Twenty gives you a good spread.</p>';
+    return;
+  }
+  draft.questions.forEach((q, i) => {
+    const card = document.createElement('div');
+    card.className = 'qcard';
+    card.innerHTML = '<span class="n">' + (i + 1) + '</span>' +
+      '<span class="body">' + escHtml(q.text) +
+      '<small>' + q.answers.length + ' answers · ' +
+      escHtml(q.answers.map(a => a.text).join(', ')) + '</small></span>';
+
+    const edit = document.createElement('button');
+    edit.textContent = 'Edit';
+    edit.style.fontSize = '14px';
+    edit.onclick = () => {
+      readForm();
+      const busy = draft.qtext.trim() || draft.answers.some(a => a.text.trim());
+      if (busy && !confirm('Replace the question you are typing with this one?')) return;
+      const pulled = draft.questions.splice(i, 1)[0];
+      draft.qtext = pulled.text;
+      draft.answers = pulled.answers.map(a => ({
+        text: a.text, points: a.points == null ? '' : String(a.points)
+      }));
+      while (draft.answers.length < 2) draft.answers.push({ text: '', points: '' });
+      saveDraft();
+      paintDraft();
+      ncMsg('Pulled question ' + (i + 1) + ' back up for editing.', true);
+      window.scrollTo(0, 0);
+    };
+
+    const kill = document.createElement('button');
+    kill.textContent = '×';
+    kill.setAttribute('aria-label', 'Delete question ' + (i + 1));
+    kill.onclick = () => {
+      draft.questions.splice(i, 1);
+      saveDraft();
+      drawQList();
+    };
+
+    card.appendChild(edit);
+    card.appendChild(kill);
+    box.appendChild(card);
+  });
+}
+
+function paintDraft() {
+  $('nc-name').value = draft.name;
+  $('nc-q').value = draft.qtext;
+  drawAnswerRows();
+  drawQList();
+}
+
+/* the half-finished question sitting in the form, if it is usable */
+function formQuestion() {
+  const text = $('nc-q').value.trim().replace(/\s+/g, ' ');
+  const answers = draft.answers
+    .map(a => ({ text: a.text.trim().replace(/\s+/g, ' '), points: parseInt(a.points, 10) }))
+    .filter(a => a.text)
+    .map(a => (a.points > 0 ? { text: a.text, points: Math.min(99, a.points) } : { text: a.text }));
+  if (!text || answers.length < 2) return null;
+  return { text, answers };
+}
+
+$('nc-name').oninput = readForm;
+$('nc-q').oninput = readForm;
+$('nc-addans').onclick = () => {
+  if (draft.answers.length >= 8) return;
+  draft.answers.push({ text: '', points: '' });
+  saveDraft();
+  drawAnswerRows();
+};
+
+$('nc-addq').onclick = () => {
+  readForm();
+  if (!$('nc-q').value.trim()) return ncMsg('Type the question first.', false);
+  const q = formQuestion();
+  if (!q) return ncMsg('A question needs at least two answers.', false);
+  draft.questions.push(q);
+  draft.qtext = '';
+  draft.answers = blankAnswers();
+  saveDraft();
+  paintDraft();
+  ncMsg('Added — that is ' + draft.questions.length + ' so far.', true);
+  window.scrollTo(0, 0);
+};
+
+$('nc-json').onclick = () => {
+  $('nc-jsonbox').classList.toggle('hidden');
+  if (!$('nc-jsonbox').classList.contains('hidden')) {
+    $('nc-jsontext').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+};
+
+$('nc-import').onclick = () => {
+  readForm();
+  let parsed;
+  try {
+    parsed = JSON.parse($('nc-jsontext').value);
+  } catch (err) {
+    return ncMsg('That is not valid JSON: ' + err.message, false);
+  }
+  // accept a bare list of questions or a whole { name, questions } category
+  if (parsed && !Array.isArray(parsed) && Array.isArray(parsed.questions)) {
+    if (parsed.name && !draft.name.trim()) {
+      draft.name = String(parsed.name).slice(0, 40);
+      $('nc-name').value = draft.name;
+    }
+    parsed = parsed.questions;
+  }
+  if (!Array.isArray(parsed)) return ncMsg('Expected a list of questions.', false);
+
+  let added = 0;
+  parsed.forEach(raw => {
+    if (!raw) return;
+    const text = String(raw.text || raw.question || '').trim();
+    const answers = (Array.isArray(raw.answers) ? raw.answers : [])
+      .map(a => (typeof a === 'string' ? { text: a } : (a || {})))
+      .map(a => {
+        const pts = Math.round(Number(a.points));
+        const out = { text: String(a.text || '').trim().slice(0, 24) };
+        if (pts > 0) out.points = Math.min(99, pts);
+        return out;
+      })
+      .filter(a => a.text)
+      .slice(0, 8);
+    if (!text || answers.length < 2) return;
+    draft.questions.push({ text, answers });
+    added += 1;
+  });
+  saveDraft();
+  drawQList();
+  if (!added) return ncMsg('Nothing in there had a question and two answers.', false);
+  $('nc-jsontext').value = '';
+  $('nc-jsonbox').classList.add('hidden');
+  ncMsg('Imported ' + added + ' — ' + draft.questions.length + ' in the category now.', true);
+};
+
+$('nc-save').onclick = () => {
+  readForm();
+  const out = draft.questions.slice();
+  const pending = formQuestion();
+  if (pending) out.push(pending);          // don't lose a finished-but-unadded question
+  if (!draft.name.trim()) return ncMsg('Give the category a name.', false);
+  if (!out.length) return ncMsg('Add at least one question first.', false);
+
+  $('nc-save').disabled = true;
+  ncMsg('Saving…', true);
+  Live.send('createCategory', { name: draft.name.trim(), questions: out }).then(r => {
+    $('nc-save').disabled = false;
+    if (!r || !r.ok) return ncMsg((r && r.error) || 'Could not save that.', false);
+    const info = r.result || {};
+    chosen.add(info.name);
+    draft = { name: '', qtext: '', answers: blankAnswers(), questions: [] };
+    saveDraft();
+    paintDraft();
+    ncMsg('', true);
+    $('nc-jsontext').value = '';
+    $('nc-jsonbox').classList.add('hidden');
+    composing = false;
+    show('setup');
+    setupMsg((info.replaced ? 'Replaced "' : 'Saved "') + info.name + '" — ' + info.count +
+      (info.count === 1 ? ' question' : ' questions') + ', ticked and ready to play.');
   });
 };
+
+$('newcat').onclick = () => {
+  composing = true;
+  setupMsg('');
+  ncMsg('');
+  paintDraft();
+  show('newcat');
+};
+function leaveComposer() {
+  readForm();
+  composing = false;
+  show('setup');
+  setupMsg(draft.questions.length
+    ? 'Your draft (' + draft.questions.length + ') is saved on this phone until you save the category.'
+    : '');
+}
+$('nc-back').onclick = leaveComposer;
+$('nc-back-top').onclick = leaveComposer;
 
 /* ---------------------------------------------------------------- render */
 let cur = null;
@@ -349,7 +755,7 @@ function paintGame(s) {
     const main = document.createElement('button');
     main.className = 'ans-main';
     main.innerHTML = (revealed ? '<img class="tick" src="check.png" alt="">' : '') +
-      '<span class="txt">' + a.text + '</span><span class="pt">' + a.points + '</span>';
+      '<span class="txt">' + escHtml(a.text) + '</span><span class="pt">' + a.points + '</span>';
     main.disabled = revealed;
     main.onclick = () => Live.send('reveal', { index: i });
 
@@ -411,9 +817,13 @@ Live.onState = s => {
     : icon('soundOn', 22) + '<span>Sound is ON</span>';
   $('seA').textContent = s.teams[0].name;
   $('seB').textContent = s.teams[1].name;
+  setCatalog(s.catalog);
 
-  if (s.phase === 'setup') { show('setup'); return; }
+  // don't yank the announcer out of a half-written category
+  if (s.phase === 'setup') { if (!composing) show('setup'); return; }
+  composing = false;
   if (s.phase === 'question') { show('game'); paintGame(s); return; }
+
   if (s.phase === 'roundwin') {
     show('round');
     const t = s.roundWinner || 0;
