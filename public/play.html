@@ -7,8 +7,10 @@
 <link rel="icon" href="logo.png">
 <link rel="stylesheet" href="styles.css">
 <style>
-/* the board is a fixed one-screen layout - it must never scroll */
-body { overflow: hidden; }
+/* The board is a fixed one-screen layout and must never scroll. The setup form
+   on this same page is taller than a laptop window, so it has to - the lock
+   goes on and off with the view (see show()). */
+body.locked { overflow: hidden; }
 
 /* ------------------------------------------------------------ setup form */
 .setup-grid { display: flex; flex-direction: column; gap: 18px; align-items: center; }
@@ -33,24 +35,47 @@ body { overflow: hidden; }
 
 /* --------------------------------------------------------------- top bar */
 .topbar {
-  display: flex; align-items: flex-start; justify-content: space-between;
-  gap: 20px; padding: 1.4vh 2.2vw 0;
+  display: flex; align-items: stretch; justify-content: space-between;
+  gap: 1.4vw; padding: 1.4vh 2.2vw 0.8vh;
 }
 /* equal-width flanks keep the question optically centred */
-.tb-side { width: 17vw; flex: none; display: flex; flex-direction: column; gap: 0.9vh; align-items: flex-start; }
-.tb-side.right { align-items: flex-end; }
-.tb-logo { height: 5.6vh; object-fit: contain; object-position: left center; }
-/* A long category name used to run straight out of the 17vw flank and under
-   the question. It stays inside the flank now and wraps if it has to. */
-.round-pill {
-  font-size: 1.45vh; letter-spacing: 0.09em; text-transform: uppercase;
-  color: var(--gold-bright); border: 2px solid var(--gold-dim);
-  border-radius: 1.6vh; padding: 0.6vh 1.1vw; line-height: 1.35;
-  max-width: 100%; text-align: center;
+.tb-side { width: 15vw; flex: none; display: flex; flex-direction: column; gap: 0.8vh; align-items: stretch; }
+.tb-side.right { justify-content: flex-start; }
+.tb-logo { height: 5.4vh; object-fit: contain; object-position: left center; align-self: flex-start; }
+
+/* Round and category read as one plate under the logo: the round number small
+   and quiet on top, the category big and gold underneath, so a long name has a
+   line of its own instead of squeezing in beside the count. */
+.round-plate {
+  border: 0.28vh solid var(--gold-dim); border-radius: 1.3vh;
+  background: rgba(4, 8, 26, 0.62);
+  padding: 0.7vh 0.8vw; text-align: center;
+}
+.rp-round {
+  display: block; font-size: 1.5vh; letter-spacing: 0.2em;
+  text-transform: uppercase; color: #b9c4ec; line-height: 1.2;
+}
+.rp-cat {
+  display: block; margin-top: 0.4vh;
+  font-size: 1.9vh; font-weight: 700; letter-spacing: 0.02em; line-height: 1.2;
+  text-transform: uppercase; color: var(--gold-bright);
+}
+
+/* The question used to float straight on the dot pattern. It gets the same
+   gold frame as the board now, at a fixed height so the tiles never shift
+   between rounds - fitQuestion() shrinks the text to suit. */
+.qframe {
+  flex: 1; min-width: 0; height: 15.5vh;
+  display: flex; align-items: center; justify-content: center;
+  padding: 1.1vh 1.6vw; overflow: hidden;
+  border: 0.5vh solid var(--gold); border-radius: 2.2vh;
+  background: rgba(4, 8, 26, 0.82);
+  box-shadow: 0 0 0 0.22vh #7a4f08, 0 0 34px rgba(240,168,36,0.28),
+              inset 0 0 44px rgba(0,0,0,0.55);
 }
 .qtext {
-  flex: 1; text-align: center; font-size: 4.3vh; font-weight: 700;
-  line-height: 1.24; padding: 0 1vw; text-shadow: 0 2px 6px rgba(0,0,0,0.6);
+  width: 100%; text-align: center; font-size: 5.2vh; font-weight: 700;
+  line-height: 1.18; text-shadow: 0 2px 6px rgba(0,0,0,0.6);
 }
 
 /* strike tray */
@@ -237,9 +262,12 @@ body { overflow: hidden; }
     <div class="topbar">
       <div class="tb-side">
         <img class="tb-logo" src="logo.png" alt="Golden Games">
-        <div class="round-pill" id="pill">Round 1 of 6</div>
+        <div class="round-plate">
+          <span class="rp-round" id="pill">Round 1 of 6</span>
+          <span class="rp-cat" id="pillcat"></span>
+        </div>
       </div>
-      <div class="qtext" id="qtext"></div>
+      <div class="qframe"><div class="qtext" id="qtext"></div></div>
       <div class="tb-side right">
         <div class="tray" id="tray"></div>
       </div>
@@ -351,6 +379,9 @@ let renderedTiles = [];
 
 function show(name) {
   for (const k in views) views[k].classList.toggle('hidden', k !== name);
+  /* Every view but setup is built to fit one screen exactly. Setup is a form
+     that can outgrow a laptop window, so it keeps the page scrollable. */
+  document.body.classList.toggle('locked', name !== 'setup');
 }
 
 function buildBoard(q) {
@@ -385,6 +416,24 @@ function buildBoard(q) {
   }
 }
 
+/* The question frame is a fixed height so the tiles never shift between
+   rounds; a long question is scaled down to fit it instead. Nothing may
+   transition font-size, or these measurements read a mid-animation value. */
+let fittedText = null;
+function fitQuestion() {
+  const el = $('qtext'), frame = el.parentNode, cs = getComputedStyle(frame);
+  const room = frame.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+  if (room <= 0) { fittedText = null; return; }   // hidden - measure next time
+  let size = 5.2;
+  el.style.fontSize = size + 'vh';
+  while (size > 2.2 && el.scrollHeight > room) {
+    size -= 0.15;
+    el.style.fontSize = size + 'vh';
+  }
+  fittedText = el.textContent;
+}
+window.addEventListener('resize', () => { if (fittedText) fitQuestion(); });
+
 function paintBoard(s) {
   const q = s.question;
   if (!q) return;
@@ -392,9 +441,12 @@ function paintBoard(s) {
     lastQuestionId = q.id;
     buildBoard(q);
   }
-  $('qtext').textContent = q.text;
-  $('pill').textContent = 'Round ' + (s.roundIndex + 1) + ' of ' + s.totalRounds +
-    '  ·  ' + q.category;
+  if (fittedText !== q.text) {
+    $('qtext').textContent = q.text;
+    fitQuestion();
+  }
+  $('pill').textContent = 'Round ' + (s.roundIndex + 1) + ' of ' + s.totalRounds;
+  $('pillcat').textContent = q.category;
 
   q.answers.forEach((a, i) => {
     const tile = renderedTiles[i];
